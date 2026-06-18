@@ -7,6 +7,16 @@ An end-to-end lakehouse measuring **MBTA on-time performance (OTP)** from live
 GTFS-Realtime + static schedules. **AWS + Databricks**, reproducible from code.
 Stakeholder: transit ops. Metric: OTP % by route/stop/hour. See `README.md`.
 
+## Session boundary (THIS is the "mbta-on-time-lakehouse" / workshop session)
+This project is worked across two Claude Code sessions. **This repo session = the workshop:
+build / run / test / commit / deploy.** The other session ("claudesidian", in
+`~/Dev/second-brain`) = mission control: planning, progress notes, decision journal, corpus
+queries. Full model: vault `01_Projects/mbta-on-time-lakehouse/WORKING-MODEL.md`.
+- ✅ Do here: code, IaC, databricks bundles, tests, git/PRs, CI, aws/terraform/databricks CLI.
+- 🚫 NOT here: roadmap/progress/decision notes that live in the vault, or corpus queries →
+  tell Jonas *"that's mission-control work — do it in the claudesidian session."*
+- Never commit vault notes into this repo. Never commit secrets (this repo is public).
+
 ## Non-negotiable principles
 - **CLI-first / reproducible from code.** Everything (infra, pipelines, jobs) deploys from
   a terminal. Tool versions pinned in `mise.toml`; Python deps via `uv`. If it can't be done
