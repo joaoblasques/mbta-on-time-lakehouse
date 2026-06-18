@@ -5,7 +5,7 @@
 python = "3.12.8"
 uv = "0.9.10"
 terraform = "1.12.1"
-awscli = "2.35.7"
+gcloud = "573.0.0"
 databricks-cli = "1.4.0"
 
 [settings]

@@ -5,7 +5,9 @@
 *.pem
 *.key
 credentials
-aws-credentials*
+gcp-credentials*
+*service-account*.json
+application_default_credentials.json
 databricks.token
 *.tfvars
 !*.tfvars.example
@@ -16,7 +18,7 @@ databricks.token
 *.tfstate.*
 crash.log
 .terraform.lock.hcl.bak
-# NOTE: .terraform.lock.hcl IS committed (provider version pinning). State lives in S3 backend.
+# NOTE: .terraform.lock.hcl IS committed (provider version pinning). State lives in GCS backend.
 
 # --- Python / uv ---
 .venv/

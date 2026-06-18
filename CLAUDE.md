@@ -4,7 +4,7 @@ Project context for any AI coding session. Keep it tight; this is read every ses
 
 ## What this is
 An end-to-end lakehouse measuring **MBTA on-time performance (OTP)** from live
-GTFS-Realtime + static schedules. **AWS + Databricks**, reproducible from code.
+GTFS-Realtime + static schedules. **GCP + Databricks**, reproducible from code.
 Stakeholder: transit ops. Metric: OTP % by route/stop/hour. See `README.md`.
 
 ## Session boundary (THIS is the "mbta-on-time-lakehouse" / workshop session)
@@ -12,7 +12,7 @@ This project is worked across two Claude Code sessions. **This repo session = th
 build / run / test / commit / deploy.** The other session ("claudesidian", in
 `~/Dev/second-brain`) = mission control: planning, progress notes, decision journal, corpus
 queries. Full model: vault `01_Projects/mbta-on-time-lakehouse/WORKING-MODEL.md`.
-- ✅ Do here: code, IaC, databricks bundles, tests, git/PRs, CI, aws/terraform/databricks CLI.
+- ✅ Do here: code, IaC, databricks bundles, tests, git/PRs, CI, gcloud/terraform/databricks CLI.
 - 🚫 NOT here: roadmap/progress/decision notes that live in the vault, or corpus queries →
   tell Jonas *"that's mission-control work — do it in the claudesidian session."*
 - Never commit vault notes into this repo. Never commit secrets (this repo is public).
@@ -22,7 +22,7 @@ queries. Full model: vault `01_Projects/mbta-on-time-lakehouse/WORKING-MODEL.md`
   a terminal. Tool versions pinned in `mise.toml`; Python deps via `uv`. If it can't be done
   from code, automate the browser (Playwright); manual GUI is the last resort, documented.
 - **Never commit secrets.** This is a PUBLIC repo. Secrets live in `.env` (gitignored) /
-  AWS Secrets Manager / GitHub Actions secrets. Check `.gitignore` before adding files.
+  GCP Secret Manager / GitHub Actions secrets. Check `.gitignore` before adding files.
 - **Idempotent pipelines.** Re-runs/backfills must not duplicate data. (Run-id overwrite or
   natural-key upsert.)
 - **Data-quality gates before exposing data** — validate source + consumption layers.
@@ -30,12 +30,15 @@ queries. Full model: vault `01_Projects/mbta-on-time-lakehouse/WORKING-MODEL.md`
   24/7 clusters. Tear infra down between sessions. Report run cost.
 
 ## Architecture / stack
-S3 (bronze, raw) → Spark on Databricks → Delta (**Liquid Clustering**, not Hive partitioning)
+GCS (bronze, raw) → Spark on Databricks → Delta (**Liquid Clustering**, not Hive partitioning)
 → silver (clean, RT⋈schedule, dedup, lateness) → gold (OTP marts) → Databricks SQL.
 Governance: **Unity Catalog**. Orchestration: **Lakeflow Declarative Pipelines**.
 Streaming: **GCP Pub/Sub** (GTFS-RT poller on GCP; Databricks consumes into bronze) —
 *changed from Kinesis on 2026-06-18, see `docs/architecture.md`*.
-IaC: **Terraform** (AWS + Databricks **+ GCP** providers).
+IaC: **Terraform** (GCP + Databricks providers).
+NOTE: the Databricks workspace + Unity Catalog managed storage are **AWS-hosted** (S3) —
+managed plumbing we don't operate directly. GCP owns ingestion/streaming/object storage;
+Databricks owns compute/medallion/governance/serving. (Reframe of 2026-06-18.)
 
 ## How to work here (lessons baked in)
 - **Do NOT one-shot.** A coding agent once silently loaded 1,493 of 5,458 rows and dropped
@@ -60,6 +63,6 @@ uv run ruff check .         # lint
 ```
 
 ## Out of scope
-Databricks/AWS features outside the DE pipeline (ML/MLflow, model serving, web hosting).
+Databricks/cloud-provider features outside the DE pipeline (ML/MLflow, model serving, web hosting).
 An optional text-to-SQL *demo* layer (WrenAI/Vanna) may sit on the finished gold marts — it
 is additive, never part of the build.

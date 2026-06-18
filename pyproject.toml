@@ -1,14 +1,15 @@
 [project]
 name = "mbta-on-time-lakehouse"
 version = "0.0.1"
-description = "Lakehouse measuring MBTA on-time performance from live GTFS-Realtime + static schedules (S3 + Databricks)."
+description = "Lakehouse measuring MBTA on-time performance from live GTFS-Realtime + static schedules (GCP + Databricks)."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     # Ingestion
     "requests>=2.32",
     "gtfs-realtime-bindings>=1.0",   # parse GTFS-RT protobuf feeds
-    "boto3>=1.34",                   # AWS (S3, Kinesis) from the poller
+    "google-cloud-pubsub>=2.21",     # publish GTFS-RT pings from the poller
+    "google-cloud-storage>=2.16",    # land raw RT objects in GCS (bronze)
 ]
 
 [dependency-groups]
@@ -22,5 +23,11 @@ dev = [
 line-length = 100
 target-version = "py312"
 
+[tool.ruff.lint.per-file-ignores]
+# Databricks notebooks: `spark`/`display`/`dbutils` are injected by the runtime (F821),
+# and cell helpers use inline `stmt; stmt` form (E702). Everything else is still linted.
+"databricks/notebooks/*.py" = ["F821", "E702"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]   # make the repo-root `src` package importable in tests
