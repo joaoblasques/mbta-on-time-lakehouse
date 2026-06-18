@@ -8,6 +8,10 @@ terraform = "1.12.1"
 awscli = "2.35.7"
 databricks-cli = "1.4.0"
 
+[settings]
+# python is distributed without GitHub artifact attestations; skip that check.
+python.github_attestations = false
+
 [env]
 # Load local secrets from .env if present (gitignored). Never commit real values.
 _.file = ".env"
