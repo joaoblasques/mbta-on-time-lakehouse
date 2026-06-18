@@ -10,7 +10,8 @@ from pyspark.sql import functions as F
 
 RAW = "/Volumes/mbta/bronze/raw"
 CATALOG, SCHEMA = "mbta", "bronze"
-FILES = {"routes": "routes.csv", "stops": "stops.csv", "trips": "trips.csv"}
+FILES = {"routes": "routes.csv", "stops": "stops.csv",
+         "trips": "trips.csv", "stop_times": "stop_times.csv"}
 
 # COMMAND ----------
 def ingest_bronze(table: str, filename: str) -> int:
