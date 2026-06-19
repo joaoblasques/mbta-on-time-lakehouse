@@ -6,35 +6,46 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  lint-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Install uv
         uses: astral-sh/setup-uv@v5
-
-      - name: Set up Python
+      - name: Python
         run: uv python install 3.12.8
-
-      - name: Install dependencies
+      - name: Install deps
         run: uv sync --all-groups
-
-      - name: Lint
+      - name: Lint (ruff)
         run: uv run ruff check .
-
-      - name: Tests
+      - name: Tests (pytest)
         run: uv run pytest -q
 
-  terraform-validate:
+  terraform:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.12.1
-      - name: Terraform fmt + validate
-        working-directory: terraform
+      - name: Format check
+        run: terraform -chdir=terraform fmt -check -recursive
+      - name: Validate (no backend, no creds)
         run: |
-          terraform fmt -check -recursive || true   # TODO: drop '|| true' once tf exists
-          test -f main.tf && terraform init -backend=false && terraform validate || echo "no terraform yet"
+          terraform -chdir=terraform init -backend=false
+          terraform -chdir=terraform validate
+
+  json:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate dashboard + job JSON
+        run: |
+          python3 -m json.tool dashboards/otp.lvdash.json > /dev/null
+          python3 -m json.tool databricks/jobs/medallion_refresh.job.json > /dev/null
+          echo "JSON valid"
+
+# NOTE — `terraform plan` on PR → `apply` on merge (with a human gate) is the natural next
+# step. It needs GCP auth in CI: GitHub OIDC → GCP Workload Identity Federation (preferred,
+# keyless) or a service-account key in repo secrets. The jobs above run credential-free so CI
+# stays green and useful without exposing cloud access. Wiring WIF is a documented follow-up.

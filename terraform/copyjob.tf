@@ -33,9 +33,9 @@ resource "google_storage_bucket_iam_member" "copier_reader" {
 
 # The databricks-token secret is created out-of-band (gcloud) to keep it out of TF state.
 resource "google_secret_manager_secret_iam_member" "copier_secret" {
-  secret_id = "databricks-token"
-  role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${google_service_account.copier.email}"
+  secret_id  = "databricks-token"
+  role       = "roles/secretmanager.secretAccessor"
+  member     = "serviceAccount:${google_service_account.copier.email}"
   depends_on = [google_project_service.secretmanager]
 }
 
