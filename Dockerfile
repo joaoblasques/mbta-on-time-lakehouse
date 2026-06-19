@@ -6,9 +6,11 @@ WORKDIR /app
 RUN pip install --no-cache-dir \
     "requests>=2.32" \
     "gtfs-realtime-bindings>=1.0" \
-    "google-cloud-storage>=2.16"
+    "google-cloud-storage>=2.16" \
+    "databricks-sdk>=0.30"
 
 COPY src ./src
 
-# Default args = one-shot poll (interval=0, iterations=1). Bucket via env (set by the Job).
+# Default = one-shot poll. The GCS->Volume copy Job overrides the command to run
+# src.ingestion.gcs_to_volume instead (same image, two jobs).
 ENTRYPOINT ["python", "-m", "src.ingestion.gtfs_rt_poller"]
