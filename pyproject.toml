@@ -25,8 +25,9 @@ target-version = "py312"
 
 [tool.ruff.lint.per-file-ignores]
 # Databricks notebooks: `spark`/`display`/`dbutils` are injected by the runtime (F821),
-# and cell helpers use inline `stmt; stmt` form (E702). Everything else is still linted.
-"databricks/notebooks/*.py" = ["F821", "E702"]
+# cell helpers use inline `stmt; stmt` form (E702), and imports live in later cells after
+# the %pip cell (E402). Everything else is still linted.
+"databricks/notebooks/*.py" = ["F821", "E702", "E402"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
