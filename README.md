@@ -1,95 +1,101 @@
 # MBTA On-Time Lakehouse
 
 > **Is the train late, and why?** — an end-to-end lakehouse that ingests the MBTA's live
-> transit feed, measures **on-time performance (OTP)**, and surfaces *where delays originate
-> and cascade* — built on **GCP + Databricks**, fully reproducible from code.
+> transit feed, measures **on-time performance (OTP)**, and surfaces *where delays
+> concentrate* — built on **GCP + Databricks**, **reproducible from code**.
 
-🚧 **Status: Phase 0 (foundations).** Building in the open. See [roadmap](#roadmap).
+**Status: working end-to-end.** GTFS static + live GTFS-Realtime → bronze → silver
+(lateness) → gold (OTP) → an AI/BI dashboard, with a scheduled cloud poller building real
+history. Built CLI-first; every notebook is idempotent and data-quality-gated.
 
 ---
 
 ## The problem
+A transit-ops team needs to know not just *that* trains are late, but **where lateness
+concentrates** across routes and stops — so they know where to intervene.
 
-A transit-operations team needs to know not just *that* trains are late, but *where lateness
-starts and how it propagates* across routes and stops — so they know where to intervene.
-This project answers that from the MBTA's public real-time feed.
+- **Stakeholder:** MBTA ops manager · **Metric:** OTP % by route / stop / hour · **Cadence:** near-real-time
 
-- **Stakeholder:** MBTA ops manager
-- **Metric:** on-time performance (%) by route / stop / hour
-- **Cadence:** near-real-time + daily rollups
+## What it shows (sample)
+On a short capture window: **system-wide OTP ≈ 64%** (on-time = −1..+5 min); worst routes the
+**E line (~14%)** and route 66; delays concentrate at stops like **Davis** and **Alewife**.
+*(Numbers are illustrative until the scheduled poller accumulates days of history — the
+computation is the deliverable; more data just sharpens it.)*
 
 ## Architecture
 
+```mermaid
+flowchart TD
+  subgraph GCPbox["GCP"]
+    RT["MBTA GTFS-Realtime (.pb feeds)"] --> POLL["poller — Cloud Run Job<br/>(Cloud Scheduler, every 2 min)"]
+    POLL --> GCS[("GCS bronze<br/>raw .pb, date-partitioned")]
+  end
+  STATIC["MBTA GTFS static<br/>routes/stops/trips/stop_times"] --> VOL[("Databricks Volume<br/>(managed)")]
+  GCS -. "Free Edition can't read GCS directly<br/>(WIF gated) → copy to Volume" .-> VOL
+  subgraph DBX["Databricks + Unity Catalog"]
+    VOL --> BRONZE["bronze (Delta)<br/>schedule + rt_trip_updates / rt_vehicle_positions"]
+    BRONZE --> SILVER["silver<br/>typed + trip_stop_lateness"]
+    SILVER --> GOLD["gold<br/>otp_by_route / _route_hour / _stop"]
+    GOLD --> DASH["AI/BI dashboard"]
+  end
 ```
-GTFS-Realtime (stream) ─► GCP poller ─► Pub/Sub ─┐
-                                                 ├─► GCS (bronze, raw)
-GTFS static (batch) ─────────────────────────────┘        │
-                                                          ▼
-                              Databricks: Spark + Delta
-                        bronze → silver (clean, RT⋈schedule, dedup, lateness)
-                                                          │
-                                                          ▼
-                              gold (OTP marts: route/stop/hour)
-                                                          │
-                                                          ▼
-                      Databricks SQL dashboard   ◄─ Unity Catalog (governance)
-```
 
-> Note: GCP owns ingestion, streaming, and raw object storage; Databricks owns compute,
-> the medallion, governance, and serving.
+> **Split of responsibilities:** GCP owns ingestion + raw object storage; Databricks owns the
+> medallion, governance (Unity Catalog), and serving. The dashed hop is a real Free-Edition
+> constraint, documented in [decisions](docs/architecture.md).
 
-## Stack
+## Stack (what's actually built)
 
-| Concern | Choice | Rationale |
-|---|---|---|
-| Storage | **Google Cloud Storage (GCS)** | raw RT object landing |
-| Processing | **Spark on Databricks**, **Delta** | lakehouse core |
-| Table layout | **Liquid Clustering** | avoids Hive over-partitioning |
-| Governance | **Unity Catalog** | lineage, access control, audit |
-| Orchestration | **Lakeflow Declarative Pipelines** | platform-native, preserves lineage |
-| Streaming | **GCP Pub/Sub** | streaming + batch on one dataset |
-| Compute | **job / serverless clusters** | auto-terminate; no 24/7 cost |
-| IaC | **Terraform** (GCP + Databricks providers) | everything reproducible |
-| CI/CD | **GitHub Actions** | tests + DQ on PR, plan→apply gating |
+| Concern | Choice |
+|---|---|
+| Raw RT landing | **GCS** (date-partitioned `.pb`) |
+| Scheduled ingestion | **Cloud Run Job + Cloud Scheduler** (containerized poller) |
+| Lakehouse / compute | **Spark on Databricks (Free Edition)**, **Delta**, **Unity Catalog** |
+| Modeling | medallion bronze → silver → gold; **explicit schemas**, idempotent overwrite |
+| Serving | **Databricks AI/BI dashboard** (as code, `dashboards/otp.lvdash.json`) |
+| IaC | **Terraform** (GCP provider; GCS-backed remote state) |
+| Toolchain | **mise**-pinned (`gcloud`/`terraform`/`databricks`/`python`/`uv`) |
+| Provisioned for next | **Pub/Sub** topic (true streaming path), GitHub Actions CI |
 
 ## Engineering principles
+- **Reproducible from code** — infra (Terraform), pipelines (notebooks), dashboard (JSON), all version-controlled and CLI-deployable.
+- **Idempotent** — re-runs/backfills never duplicate (timestamped object names; Delta overwrite).
+- **Data-quality gates** — every notebook `assert`s (non-empty, uniqueness, referential integrity, OTP bounds) so bad data **fails the job** instead of leaking downstream.
+- **Cost discipline** — serverless/job compute, auto-terminate, `force_destroy` buckets, a 2-min cadence well within free credits.
 
-- **CLI-first / reproducible from code** — the entire platform (infra, pipelines, jobs)
-  deploys from a terminal. Tool versions pinned via [`mise`](mise.toml); Python deps via `uv`.
-- **Idempotent** pipelines (re-run / backfill safe).
-- **Data-quality gates** before data is exposed.
-- **Cost discipline** — runs under a strict budget; infra torn down between sessions; run
-  cost reported.
-
-## Quickstart (reproduce)
-
-```bash
-mise install          # provision pinned gcloud / terraform / databricks / python
-uv sync               # install Python deps into .venv
-cp .env.example .env  # then fill in MBTA_API_KEY etc. (never committed)
-uv run pytest         # run the test suite
+## Repo tour
+```
+databricks/notebooks/   01_bronze · 02_silver · 03_bronze_rt · 04_silver_lateness · 05_gold_otp
+src/ingestion/          gtfs_rt_poller.py  (I/O separated from pure logic; unit-tested)
+terraform/              GCS + Pub/Sub + Cloud Run Job + Cloud Scheduler + IAM
+dashboards/             otp.lvdash.json  (AI/BI dashboard as code)
+docs/                   concepts.md · architecture.md (decisions) · design-patterns.md
+tests/                  pytest (pure-logic + smoke)
 ```
 
-> Secrets are loaded from `.env` locally and from GCP Secret Manager / GitHub Actions
-> secrets in CI. **No credentials are ever committed.**
+## Reproduce
+```bash
+mise install                 # pinned gcloud/terraform/databricks/python/uv
+uv sync                      # python deps
+terraform -chdir=terraform init && terraform -chdir=terraform apply   # GCP infra
+# build + push poller image, then the notebooks run on Databricks (see docs/architecture.md)
+```
+> Secrets live in `.env` (gitignored) / GCP / GitHub Actions secrets — **never committed.**
 
 ## Docs
+- **[Concepts & glossary](docs/concepts.md)** — RT, time series, medallion, partitioning, idempotency, silver-vs-gold.
+- **[Architecture & hard decisions](docs/architecture.md)** — the design calls + why (interview ammo).
+- **[Design patterns](docs/design-patterns.md)** — reusable patterns this project produced.
 
-- [Concepts & glossary](docs/concepts.md) — plain-language explanation of the DE + transit
-  concepts behind the project (lateness equation, GTFS/RT, medallion, partitioning).
-- [Architecture & decisions](docs/architecture.md) — medallion flow + decisions log.
-
-## Roadmap
-
-- **Phase 0** — foundations: repo, toolchain, first GTFS-RT byte landed in GCS ← *here*
-- **Phase 1** — demoable batch slice: medallion bronze→silver→gold, real OTP numbers
-- **Phase 2** — streaming (Pub/Sub → Structured Streaming/Lakeflow) + production rigor
-- **Phase 3** — CI/CD, dashboard, architecture write-up, "hard decisions" doc
+## What's done vs. next
+- ✅ Bronze + silver + gold medallion (5 idempotent, DQ-gated notebooks), real OTP
+- ✅ Scheduled cloud ingestion (Cloud Run + Scheduler) building history
+- ✅ AI/BI dashboard as code
+- ⬜ GitHub Actions CI (tests + DQ on PR; `terraform plan→apply` gating)
+- ⬜ True streaming path (Pub/Sub → Structured Streaming) + a real (non-Free-Edition) workspace for direct GCS reads
 
 ## Data source
-
-MBTA V3 API / GTFS-Realtime — https://www.mbta.com/developers — public, free (API key).
+MBTA V3 API / GTFS-Realtime — https://www.mbta.com/developers (public, free).
 
 ---
-
-*A data-engineering portfolio project. Built with Claude Code, operated CLI-first.*
+*A data-engineering portfolio project. Built CLI-first with Claude Code.*
