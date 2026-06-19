@@ -1,7 +1,7 @@
 # Concepts Explained — MBTA On-Time Lakehouse
 
 Plain-language glossary of the DE + transit concepts behind this project, tied to what
-we're actually building. Written while learning — see also the project [README](../README.md).
+we're actually building. Written while learning — see also the README.
 
 ## The one equation everything serves
 
@@ -65,6 +65,51 @@ RT feeds (3) ──poll on a loop──► time series of .pb snapshots in GCS  
    gold: on-time-performance % by route / stop / hour   ← the "lateness story" payoff
 ```
 
+## Cross-cloud storage access — UC credentials & external locations
+
+How Databricks reads files that live in *your* GCS bucket (the "cross-cloud spike").
+
+**Service account (SA)** — a *non-human* identity (a "robot account") software uses to
+authenticate instead of a person. Own email-like ID, own permissions. Automation gets
+exactly the access it needs.
+
+**UC storage credential** — a Unity Catalog object holding a cloud identity (a GCP SA) that
+Databricks "becomes" to reach external storage. `"databricks_gcp_service_account": {}` means
+"Databricks, generate the SA for me" — it creates one and returns its email. *The key.*
+
+**IAM (Identity & Access Management)** — the cloud permission system: **who** (a *member*:
+user or SA) may do **what** (a *role*: a permission bundle) on **which** resource. A **policy
+binding** attaches (member + role) to a resource. Granting the SA `roles/storage.objectViewer`
+(read only — not write/admin) is **least privilege**, a senior signal.
+
+**External location** — a UC object = a path (`gs://bucket`) + a storage credential. Declares
+the path governed by UC, reached via that key; READ/WRITE grants live here. **Governance**
+(who may read) is separated from **authentication** (the key). *The governed door.*
+
+**Managed vs. external storage**:
+- **Managed** (the Volume fallback) — Databricks owns the storage; drop the table → data gone.
+  Simplest; always allowed, even on Free Edition.
+- **External** (credential + external location) — data stays in *your* bucket; Databricks just
+  references it. You own the files; dropping the table doesn't delete them. The elegant
+  cross-cloud read.
+
+**Cross-cloud identity** — Databricks (its host cloud) authenticating to GCP *as a GCP SA* —
+identity crossing a cloud boundary.
+
+**Free Edition boundary / feature-gating** — managed platforms unlock features by paid tier.
+Creating credentials/external locations is metastore-admin, often **gated** on Free Edition:
+the capability exists, your tier can't invoke it. One `create` command tests that gate.
+
+**`spark.read.format("binaryFile")`** — Spark reader that loads each file as **raw bytes**
+(one row/file: `path`, `length`, `content`). Needed because `.pb` isn't CSV/JSON — read the
+bytes, then decode.
+
+**protobuf / `FeedMessage` / parse step** — Protocol Buffers = compact *binary* serialization.
+GTFS-RT wraps data in a `FeedMessage` of many `entity` records. Decode with `gtfs_realtime_pb2`
+→ pull `trip_id, vehicle_id, lat, lon, current_status, stop_id, ts`. `current_status` ∈
+{INCOMING_AT, STOPPED_AT, IN_TRANSIT_TO} — `STOPPED_AT` a stop at a time = an *actual arrival*,
+which is what you compare to the schedule for lateness.
+
 ## Glossary quick-reference
 - **GTFS** — General Transit Feed Specification; the open standard for transit data (static + realtime).
 - **protobuf (`.pb`)** — Protocol Buffers; compact binary format GTFS-RT uses (needs decoding into rows).
@@ -72,3 +117,9 @@ RT feeds (3) ──poll on a loop──► time series of .pb snapshots in GCS  
 - **medallion (bronze/silver/gold)** — lifecycle stages: raw → cleaned/typed → business-ready marts.
 - **partition pruning** — skipping irrelevant data folders at query time to cut cost/latency.
 - **idempotency** — safe-to-re-run; same outcome no matter how many times it runs.
+- **service account (SA)** — a non-human "robot" identity software uses to authenticate.
+- **IAM** — who (member) can do what (role) on which resource; bindings attach them.
+- **least privilege** — grant the minimum permission needed (e.g. read-only, not admin).
+- **storage credential / external location** — UC's key + governed-path objects for external data.
+- **managed vs external** — Databricks owns the storage vs. references data in your own bucket.
+- **binaryFile** — Spark reader that loads raw file bytes (for non-tabular formats like `.pb`).
