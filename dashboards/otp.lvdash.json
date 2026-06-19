@@ -1,0 +1,103 @@
+{
+  "datasets": [
+    {
+      "name": "ds_overview",
+      "displayName": "System OTP",
+      "queryLines": [
+        "SELECT round(100.0*sum(on_time_n)/sum(observations),1) AS system_otp, sum(observations) AS observations FROM mbta.gold.otp_by_route"
+      ]
+    },
+    {
+      "name": "ds_worst_routes",
+      "displayName": "Worst routes",
+      "queryLines": [
+        "SELECT coalesce(route_short_name, route_long_name) AS route, otp_pct, observations FROM mbta.gold.otp_by_route WHERE observations >= 50 ORDER BY otp_pct ASC LIMIT 15"
+      ]
+    },
+    {
+      "name": "ds_by_hour",
+      "displayName": "OTP by hour",
+      "queryLines": [
+        "SELECT hour, round(100.0*sum(on_time_n)/sum(observations),1) AS otp_pct, sum(observations) AS observations FROM mbta.gold.otp_by_route_hour GROUP BY hour ORDER BY hour"
+      ]
+    },
+    {
+      "name": "ds_worst_stops",
+      "displayName": "Worst stops",
+      "queryLines": [
+        "SELECT stop_name, otp_pct, observations FROM mbta.gold.otp_by_stop ORDER BY otp_pct ASC LIMIT 15"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "page_otp",
+      "displayName": "MBTA On-Time Performance",
+      "layout": [
+        {
+          "widget": {
+            "name": "w_counter",
+            "queries": [
+              {"name": "main_query", "query": {"datasetName": "ds_overview",
+                "fields": [{"name": "system_otp", "expression": "`system_otp`"}],
+                "disaggregated": true}}
+            ],
+            "spec": {"version": 2, "widgetType": "counter",
+              "encodings": {"value": {"fieldName": "system_otp", "displayName": "System OTP %"}}}
+          },
+          "position": {"x": 0, "y": 0, "width": 2, "height": 4}
+        },
+        {
+          "widget": {
+            "name": "w_worst_routes",
+            "queries": [
+              {"name": "main_query", "query": {"datasetName": "ds_worst_routes",
+                "fields": [{"name": "route", "expression": "`route`"},
+                           {"name": "otp_pct", "expression": "`otp_pct`"}],
+                "disaggregated": true}}
+            ],
+            "spec": {"version": 3, "widgetType": "bar",
+              "encodings": {
+                "x": {"fieldName": "route", "scale": {"type": "categorical"}, "displayName": "Route"},
+                "y": {"fieldName": "otp_pct", "scale": {"type": "quantitative"}, "displayName": "OTP %"}}}
+          },
+          "position": {"x": 2, "y": 0, "width": 4, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "w_by_hour",
+            "queries": [
+              {"name": "main_query", "query": {"datasetName": "ds_by_hour",
+                "fields": [{"name": "hour", "expression": "`hour`"},
+                           {"name": "otp_pct", "expression": "`otp_pct`"}],
+                "disaggregated": true}}
+            ],
+            "spec": {"version": 3, "widgetType": "line",
+              "encodings": {
+                "x": {"fieldName": "hour", "scale": {"type": "quantitative"}, "displayName": "Hour (local)"},
+                "y": {"fieldName": "otp_pct", "scale": {"type": "quantitative"}, "displayName": "OTP %"}}}
+          },
+          "position": {"x": 0, "y": 6, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "w_worst_stops",
+            "queries": [
+              {"name": "main_query", "query": {"datasetName": "ds_worst_stops",
+                "fields": [{"name": "stop_name", "expression": "`stop_name`"},
+                           {"name": "otp_pct", "expression": "`otp_pct`"},
+                           {"name": "observations", "expression": "`observations`"}],
+                "disaggregated": true}}
+            ],
+            "spec": {"version": 1, "widgetType": "table",
+              "encodings": {"columns": [
+                {"fieldName": "stop_name", "displayName": "Stop"},
+                {"fieldName": "otp_pct", "displayName": "OTP %"},
+                {"fieldName": "observations", "displayName": "Obs"}]}}
+          },
+          "position": {"x": 3, "y": 6, "width": 3, "height": 6}
+        }
+      ]
+    }
+  ]
+}
