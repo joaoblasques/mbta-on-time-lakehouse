@@ -74,6 +74,12 @@ uv run pytest         # run the test suite
 > Secrets are loaded from `.env` locally and from GCP Secret Manager / GitHub Actions
 > secrets in CI. **No credentials are ever committed.**
 
+## Docs
+
+- [Concepts & glossary](docs/concepts.md) — plain-language explanation of the DE + transit
+  concepts behind the project (lateness equation, GTFS/RT, medallion, partitioning).
+- [Architecture & decisions](docs/architecture.md) — medallion flow + decisions log.
+
 ## Roadmap
 
 - **Phase 0** — foundations: repo, toolchain, first GTFS-RT byte landed in GCS ← *here*
