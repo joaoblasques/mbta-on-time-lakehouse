@@ -7,15 +7,15 @@ An end-to-end lakehouse measuring **MBTA on-time performance (OTP)** from live
 GTFS-Realtime + static schedules. **GCP + Databricks**, reproducible from code.
 Stakeholder: transit ops. Metric: OTP % by route/stop/hour. See `README.md`.
 
-## Session boundary (THIS is the "mbta-on-time-lakehouse" / workshop session)
-This project is worked across two Claude Code sessions. **This repo session = the workshop:
-build / run / test / commit / deploy.** The other session ("claudesidian", in
-`~/Dev/second-brain`) = mission control: planning, progress notes, decision journal, corpus
-queries. Full model: vault `01_Projects/mbta-on-time-lakehouse/WORKING-MODEL.md`.
-- ✅ Do here: code, IaC, databricks bundles, tests, git/PRs, CI, gcloud/terraform/databricks CLI.
-- 🚫 NOT here: roadmap/progress/decision notes that live in the vault, or corpus queries →
-  tell Jonas *"that's mission-control work — do it in the claudesidian session."*
-- Never commit vault notes into this repo. Never commit secrets (this repo is public).
+## Working model (single session)
+Driven from ONE Claude Code session — **claudesidian** (in `~/Dev/second-brain`) — which has
+full filesystem access to this repo and does everything: code, IaC, notebooks,
+`gcloud`/`terraform`/`databricks` CLI, git commit/push — plus planning + notes in the vault.
+*(A separate "workshop" session was used earlier; consolidated 2026-06-19. A single writer
+avoids the concurrent-edit collisions the old two-session split was guarding against.)*
+Full model: vault `01_Projects/mbta-on-time-lakehouse/WORKING-MODEL.md`.
+- **Single-writer discipline:** only one agent writes this repo at a time.
+- Never commit secrets (this repo is public). Keep vault planning notes in the vault.
 
 ## Non-negotiable principles
 - **CLI-first / reproducible from code.** Everything (infra, pipelines, jobs) deploys from
