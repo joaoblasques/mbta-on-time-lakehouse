@@ -33,12 +33,9 @@ queries. Full model: vault `01_Projects/mbta-on-time-lakehouse/WORKING-MODEL.md`
 GCS (bronze, raw) → Spark on Databricks → Delta (**Liquid Clustering**, not Hive partitioning)
 → silver (clean, RT⋈schedule, dedup, lateness) → gold (OTP marts) → Databricks SQL.
 Governance: **Unity Catalog**. Orchestration: **Lakeflow Declarative Pipelines**.
-Streaming: **GCP Pub/Sub** (GTFS-RT poller on GCP; Databricks consumes into bronze) —
-*changed from Kinesis on 2026-06-18, see `docs/architecture.md`*.
+Streaming: **GCP Pub/Sub** (GTFS-RT poller on GCP; Databricks consumes into bronze).
 IaC: **Terraform** (GCP + Databricks providers).
-NOTE: the Databricks workspace + Unity Catalog managed storage are **AWS-hosted** (S3) —
-managed plumbing we don't operate directly. GCP owns ingestion/streaming/object storage;
-Databricks owns compute/medallion/governance/serving. (Reframe of 2026-06-18.)
+GCP owns ingestion/streaming/object storage; Databricks owns compute/medallion/governance/serving.
 
 ## How to work here (lessons baked in)
 - **Do NOT one-shot.** A coding agent once silently loaded 1,493 of 5,458 rows and dropped

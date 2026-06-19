@@ -35,9 +35,8 @@ GTFS static (batch) ────────────────────
                       Databricks SQL dashboard   ◄─ Unity Catalog (governance)
 ```
 
-> Note: the Databricks workspace and its Unity Catalog managed storage are AWS-hosted
-> (managed plumbing we don't operate directly). GCP owns ingestion, streaming, and raw
-> object storage; Databricks owns compute, the medallion, governance, and serving.
+> Note: GCP owns ingestion, streaming, and raw object storage; Databricks owns compute,
+> the medallion, governance, and serving.
 
 ## Stack
 
