@@ -110,6 +110,32 @@ GTFS-RT wraps data in a `FeedMessage` of many `entity` records. Decode with `gtf
 {INCOMING_AT, STOPPED_AT, IN_TRANSIT_TO} — `STOPPED_AT` a stop at a time = an *actual arrival*,
 which is what you compare to the schedule for lateness.
 
+## Medallion layers — bronze → silver → gold (and where business rules live)
+
+Three **lifecycle stages**, not a data model. Each adds trust/usefulness:
+
+- **Bronze — raw, as-ingested.** Faithful copy of the source (GTFS CSVs, decoded RT protobuf),
+  minimal transformation + provenance. Reprocessable source of truth.
+  *Ours:* `bronze.routes/stops/trips/stop_times`, `bronze.rt_trip_updates/rt_vehicle_positions`.
+- **Silver — cleaned, conformed, enriched FACTS (granular).** Typed, deduped, joined,
+  quality-gated. **One row per real-world event** at its natural grain. Analysis-ready but
+  **not aggregated** and **policy-neutral**. The "single source of truth" others build on.
+  *Ours:* `silver.trip_stop_lateness` — one row per (trip, stop) with `lateness_min`. States the
+  fact ("3.2 min late"); makes no claim about whether that's acceptable.
+- **Gold — business metrics / marts (aggregated, consumption-ready).** Purpose-built for a
+  question/dashboard: grouped, denormalized, **business rules applied**, optimized for serving.
+  **Many gold tables derive from one silver.** *Ours:* `gold.otp_by_route` / `otp_by_route_hour`
+  / `otp_by_stop` — OTP %, applying the "on-time" policy (−1..+5 min).
+
+**The key insight — where business rules live:** the definition of "on time" lives in **gold,
+not silver**. Silver stays neutral facts (`lateness_min`); gold applies policy. So changing
+"on-time = within 3 min" touches **one gold notebook** — silver and the expensive lateness join
+don't move — and you can build other gold marts (avg delay, reliability index) from the same
+silver without re-cleaning.
+
+**One line:** silver = *granular cleaned facts* ("what happened, per event"); gold =
+*aggregated answers with policy applied* ("how are we doing, per route/stop").
+
 ## Glossary quick-reference
 - **GTFS** — General Transit Feed Specification; the open standard for transit data (static + realtime).
 - **protobuf (`.pb`)** — Protocol Buffers; compact binary format GTFS-RT uses (needs decoding into rows).
