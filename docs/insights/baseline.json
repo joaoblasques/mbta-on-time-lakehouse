@@ -1,0 +1,10 @@
+{
+  "system_otp_range": [50.0, 62.0],
+  "median_late_min": 1.5,
+  "known_late_routes": ["236", "240", "350", "132", "553"],
+  "known_early_routes": ["8", "23", "Mattapan", "E"],
+  "known_late_stop_corridors": ["Bridge St"],
+  "known_early_branches": ["Green Line E", "Green Line Medford (GLX)"],
+  "min_hourly_obs": 5000,
+  "changelog": ["2026-06-19: initialized from first full day (manual Phase 0 dreaming pass)"]
+}
