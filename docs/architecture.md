@@ -84,8 +84,16 @@ deps in `uv`. **Why:** anyone (or CI) can reproduce the exact toolchain + infra 
 
 ---
 
+### 10. Closing the loop without a paid workspace
+**Decision:** since Free Edition can't read GCS, a **Cloud Run copy Job** (every 15 min) pushes
+new GCS snapshots into the Volume via the Databricks Files API (auth = a PAT in **GCP Secret
+Manager**, least-privilege), and a **scheduled Databricks Job** chains 03→04→05 (hourly) so OTP
+self-refreshes. **Why not a paid workspace:** keeps cost at ~$0 while still automating the loop.
+**Tradeoff:** GCP→Databricks needs a stored token (vs. a paid workspace reading GCS directly).
+Verified: copy `uploaded=66 skipped=63`; lateness grew 50,296 → 87,275 rows after a refresh.
+
 ## Known limitations (honest)
-- OTP numbers reflect a short capture window until the poller accumulates days of history.
-- Free Edition: no direct GCS read (decision #2), one metastore, restricted networking.
+- OTP numbers sharpen as the poller accumulates more history (now self-refreshing).
+- Free Edition: no direct GCS read (decisions #2/#10), one metastore, restricted networking.
 - Liquid Clustering is the intended layout for scale; not yet applied at current data volume.
 - True streaming (Pub/Sub → Structured Streaming) and CI are provisioned/planned, not yet built.

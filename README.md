@@ -31,7 +31,7 @@ flowchart TD
     POLL --> GCS[("GCS bronze<br/>raw .pb, date-partitioned")]
   end
   STATIC["MBTA GTFS static<br/>routes/stops/trips/stop_times"] --> VOL[("Databricks Volume<br/>(managed)")]
-  GCS -. "Free Edition can't read GCS directly<br/>(WIF gated) → copy to Volume" .-> VOL
+  GCS -. "scheduled copy Job (Cloud Run, 15 min)<br/>— Free Edition can't read GCS directly" .-> VOL
   subgraph DBX["Databricks + Unity Catalog"]
     VOL --> BRONZE["bronze (Delta)<br/>schedule + rt_trip_updates / rt_vehicle_positions"]
     BRONZE --> SILVER["silver<br/>typed + trip_stop_lateness"]
@@ -89,10 +89,11 @@ terraform -chdir=terraform init && terraform -chdir=terraform apply   # GCP infr
 
 ## What's done vs. next
 - ✅ Bronze + silver + gold medallion (5 idempotent, DQ-gated notebooks), real OTP
-- ✅ Scheduled cloud ingestion (Cloud Run + Scheduler) building history
+- ✅ Scheduled cloud ingestion (Cloud Run Job + Scheduler, every 2 min) building history
+- ✅ **Self-refreshing loop** — a GCS→Volume **copy Job** (Cloud Run, every 15 min) + a scheduled **Databricks Job** chaining 03→04→05 (hourly), so OTP rebuilds from new data automatically
 - ✅ AI/BI dashboard as code
 - ⬜ GitHub Actions CI (tests + DQ on PR; `terraform plan→apply` gating)
-- ⬜ True streaming path (Pub/Sub → Structured Streaming) + a real (non-Free-Edition) workspace for direct GCS reads
+- ⬜ True streaming path (Pub/Sub → Structured Streaming); a paid workspace would allow Databricks to read GCS directly (vs. the copy Job)
 
 ## Data source
 MBTA V3 API / GTFS-Realtime — https://www.mbta.com/developers (public, free).
