@@ -2,6 +2,7 @@
 
 from src.dreamer.baseline import OTP_BAND_MAX_MOVE, update_baseline
 from src.dreamer.detect import detect_anomalies, split_findings
+from src.dreamer.llm import LLMAnalyzer
 
 TODAY = {
     "system": {"system_otp": 55.7},
@@ -82,3 +83,13 @@ def test_baseline_is_additive_and_capped():
     added = [r for r in b["known_late_routes"] if r != "240"]
     assert len(added) <= 3                                  # capped per update
     assert b["changelog"][-1].startswith("2026-06-20")
+
+
+def test_llm_analyzer_falls_back_when_api_errors(monkeypatch):
+    real, caveats = split_findings(detect_anomalies(TODAY, BASELINE))
+    a = LLMAnalyzer(api_key="x")
+    monkeypatch.setattr(a, "_complete", lambda *args, **kw: (_ for _ in ()).throw(RuntimeError("rate limit")))
+    out = a.narrate(real, caveats, TODAY["system"])
+    assert "LLM unavailable" in out                 # graceful fallback message
+    assert "Chronically late routes" in out         # deterministic narrative still present
+    assert "236" in out                             # the real finding survives

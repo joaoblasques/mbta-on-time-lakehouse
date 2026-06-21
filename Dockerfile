@@ -7,7 +7,8 @@ RUN pip install --no-cache-dir \
     "requests>=2.32" \
     "gtfs-realtime-bindings>=1.0" \
     "google-cloud-storage>=2.16" \
-    "databricks-sdk>=0.30"
+    "databricks-sdk>=0.30" \
+    "openai>=1.40"
 
 COPY src ./src
 

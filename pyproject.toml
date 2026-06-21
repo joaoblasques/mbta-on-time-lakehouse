@@ -10,6 +10,7 @@ dependencies = [
     "gtfs-realtime-bindings>=1.0",   # parse GTFS-RT protobuf feeds
     "google-cloud-pubsub>=2.21",     # publish GTFS-RT pings from the poller
     "google-cloud-storage>=2.16",    # land raw RT objects in GCS (bronze)
+    "openai>=1.40",                  # OTP Dreamer LLM brain via OpenRouter (OpenAI-compatible)
 ]
 
 [dependency-groups]
