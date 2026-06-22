@@ -93,3 +93,30 @@ def test_llm_analyzer_falls_back_when_api_errors(monkeypatch):
     assert "LLM unavailable" in out                 # graceful fallback message
     assert "Chronically late routes" in out         # deterministic narrative still present
     assert "236" in out                             # the real finding survives
+
+
+def test_open_pr_branch_put_and_pull(monkeypatch):
+    import requests
+
+    from src.dreamer import github_pr
+    calls = []
+
+    def fake_gh(method, token, path, **kw):
+        calls.append((method, path))
+        if path.endswith("/git/ref/heads/main"):
+            return {"object": {"sha": "basesha"}}
+        if "/contents/" in path and method == "GET":
+            err = requests.HTTPError()
+            err.response = type("R", (), {"status_code": 404})()
+            raise err                                  # file not on branch yet
+        if path.endswith("/pulls") and method == "POST":
+            return {"html_url": "https://github.com/o/r/pull/1"}
+        return {}
+
+    monkeypatch.setattr(github_pr, "_gh", fake_gh)
+    url = github_pr.open_pr("tok", "o/r", "dreamer/insight-2026-06-22",
+                           {"docs/insights/x.md": "hello"}, "title", "body")
+    assert url == "https://github.com/o/r/pull/1"
+    assert ("POST", "/repos/o/r/git/refs") in calls          # branch created
+    assert any(m == "PUT" for m, _ in calls)                  # file written
+    assert ("POST", "/repos/o/r/pulls") in calls             # PR opened
