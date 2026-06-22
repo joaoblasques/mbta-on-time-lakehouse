@@ -41,6 +41,14 @@ resource "google_secret_manager_secret_iam_member" "dreamer_openrouter" {
   depends_on = [google_project_service.secretmanager]
 }
 
+# GitHub PAT so the dreamer can open CI-gated PRs (Tier-2 feedback)
+resource "google_secret_manager_secret_iam_member" "dreamer_github" {
+  secret_id  = "github-token"
+  role       = "roles/secretmanager.secretAccessor"
+  member     = "serviceAccount:${google_service_account.dreamer.email}"
+  depends_on = [google_project_service.secretmanager]
+}
+
 resource "google_cloud_run_v2_job" "dreamer" {
   name                = "mbta-dreamer"
   location            = var.region
@@ -88,6 +96,19 @@ resource "google_cloud_run_v2_job" "dreamer" {
             }
           }
         }
+        env {
+          name  = "GITHUB_REPO"
+          value = "joaoblasques/mbta-on-time-lakehouse"
+        }
+        env {
+          name = "GITHUB_TOKEN"
+          value_source {
+            secret_key_ref {
+              secret  = "github-token"
+              version = "latest"
+            }
+          }
+        }
       }
     }
   }
@@ -95,6 +116,7 @@ resource "google_cloud_run_v2_job" "dreamer" {
     google_project_service.apis,
     google_secret_manager_secret_iam_member.dreamer_dbx,
     google_secret_manager_secret_iam_member.dreamer_openrouter,
+    google_secret_manager_secret_iam_member.dreamer_github,
   ]
 }
 
