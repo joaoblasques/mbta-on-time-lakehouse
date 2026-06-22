@@ -48,7 +48,7 @@ resource "google_cloud_run_v2_job" "copier" {
     template {
       service_account = google_service_account.copier.email
       max_retries     = 1
-      timeout         = "300s"
+      timeout         = "540s" # generous margin; the copy is now incremental (bounded) anyway
       containers {
         image   = "${var.region}-docker.pkg.dev/${var.project_id}/mbta/poller:latest"
         command = ["python", "-m", "src.ingestion.gcs_to_volume"]
