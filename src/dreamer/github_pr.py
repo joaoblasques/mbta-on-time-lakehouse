@@ -21,6 +21,17 @@ def _gh(method: str, token: str, path: str, **kw) -> dict:
     return r.json() if r.text else {}
 
 
+def open_issue(token: str, repo: str, title: str, body: str) -> str:
+    return _gh("POST", token, f"/repos/{repo}/issues", json={"title": title, "body": body})["html_url"]
+
+
+def find_open_issue(token: str, repo: str, title: str) -> str | None:
+    """URL of an open issue with this exact title (skips PRs), else None — for dedupe."""
+    issues = _gh("GET", token, f"/repos/{repo}/issues?state=open&per_page=50")
+    return next((i["html_url"] for i in issues
+                 if i.get("title") == title and "pull_request" not in i), None)
+
+
 def _existing_pr_url(token: str, repo: str, branch: str, base: str) -> str | None:
     owner = repo.split("/")[0]
     prs = _gh("GET", token, f"/repos/{repo}/pulls?head={owner}:{branch}&base={base}&state=open")
