@@ -1,6 +1,24 @@
 # Showcase
 
-What the system actually produces.
+What the system actually produces — with **real numbers from the live pipeline**.
+
+## Real results (live data)
+
+**System-wide OTP: ~59%** across **489,000+** stop observations (on-time = within −1 to +5 min).
+The interesting story is the *spread*:
+
+| Most on-time routes | OTP | | Least on-time routes | OTP |
+|---|---|---|---|---|
+| Lowell Line (Commuter Rail) | 84.5% | | SL1 (Silver Line, airport) | 31.4% |
+| Fairmount Line | 82.2% | | Route 217 | 37.9% |
+| Route 100 | 81.2% | | Route 8 | 38.4% |
+
+**Where delays concentrate (worst stops):** Terminal A (13.4%), and a cluster of **Green Line
+Extension** stops — Ball Square (16.2%), East Somerville (16.5%), Medford/Tufts (17.2%), Magoun
+Square (17.6%). A real, actionable finding: *Commuter Rail is most reliable; the GLX corridor and
+the airport Silver Line are the system's pain points.*
+
+*(Numbers move as the pipeline ingests more history — this is a live snapshot.)*
 
 ## The OTP scoreboard (Gold)
 
