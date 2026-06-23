@@ -1,0 +1,31 @@
+# Databricks Asset Bundle (DAB) for the MBTA OTP lakehouse.
+#
+# Declares Databricks resources (jobs, notebooks) as version-controlled code instead of
+# ad-hoc `databricks jobs create`/`submit`. Deploy with:
+#   databricks bundle validate -t prod -p mbta
+#   databricks bundle deploy   -t prod -p mbta      # uploads notebooks + creates/updates the job
+#   databricks bundle run medallion_refresh -t prod -p mbta
+#
+# Two targets: `dev` (isolated, schedules paused, name-prefixed) for safe iteration, and
+# `prod` (clean names, schedule live) for the real deployment.
+
+bundle:
+  name: mbta-on-time-lakehouse
+
+include:
+  - resources/*.yml
+
+targets:
+  dev:
+    mode: development # prefixes resources with [dev <user>], pauses schedules — safe sandbox
+    default: true
+    workspace:
+      host: https://dbc-b39edf4c-7929.cloud.databricks.com
+
+  prod:
+    mode: production # clean names, schedules as-declared
+    workspace:
+      host: https://dbc-b39edf4c-7929.cloud.databricks.com
+      root_path: /Workspace/Users/tilakapash@gmail.com/.bundle/${bundle.name}/${bundle.target}
+    run_as:
+      user_name: tilakapash@gmail.com

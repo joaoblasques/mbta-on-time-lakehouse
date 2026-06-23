@@ -4,8 +4,8 @@
 
 variable "medallion_job_id" {
   type        = string
-  description = "Databricks job id of mbta-medallion-refresh (monitored)."
-  default     = "464695083811802"
+  description = "Databricks job id of mbta-medallion-refresh (monitored). Bundle-managed job."
+  default     = "390935525530573"
 }
 
 variable "monitor_schedule" {

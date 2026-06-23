@@ -92,6 +92,25 @@ self-refreshes. **Why not a paid workspace:** keeps cost at ~$0 while still auto
 **Tradeoff:** GCP→Databricks needs a stored token (vs. a paid workspace reading GCS directly).
 Verified: copy `uploaded=66 skipped=63`; lateness grew 50,296 → 87,275 rows after a refresh.
 
+---
+
+### 11. Databricks deploys as code: Asset Bundles
+**Decision:** the medallion job is a **Databricks Asset Bundle** (`databricks.yml` + `resources/`),
+deployed via `databricks bundle deploy` with `dev`/`prod` targets — not created by hand. **Why:**
+no notebook drift (every deploy re-uploads from the repo), the job DAG is reviewable in PRs, and
+the same source deploys isolated dev vs live prod. **Split:** Terraform owns GCP infra, Asset
+Bundles own Databricks assets — each IaC tool native to its platform. See `docs/asset-bundles.md`.
+
+### 12. Bounded rolling window + distributed parse for RT bronze
+**Decision:** `03_bronze_rt` parses protobuf in a **Spark UDF (distributed, on executors)** over a
+**bounded rolling window** (last `WINDOW_DAYS` `dt=` partitions), not a driver-side `collect()` of
+the whole Volume. **Why:** the original full-Volume `collect()` pulled every `.pb`'s bytes + millions
+of rows into the driver → OOM as history grew (surfaced once the copier recovered an 683-file
+backlog). OTP is a *recent-performance* metric, so a rolling window is the correct semantic and
+keeps compute bounded on tiny serverless. **Tradeoff:** bronze holds a rolling window, not all
+history; true append-incremental (Auto Loader) is the streaming Phase-2 item. **The self-managing
+monitor caught this failure automatically** — exactly its job.
+
 ## Known limitations (honest)
 - OTP numbers sharpen as the poller accumulates more history (now self-refreshing).
 - Free Edition: no direct GCS read (decisions #2/#10), one metastore, restricted networking.
