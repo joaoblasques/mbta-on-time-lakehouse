@@ -1,0 +1,51 @@
+name: terraform
+
+# Plan on every PR that touches infra; apply on merge to main. Auth is keyless via Workload
+# Identity Federation — GitHub mints an OIDC token, GCP exchanges it to impersonate the CI
+# service account. No long-lived JSON keys anywhere. See docs/ci-cd.md.
+
+on:
+  pull_request:
+    paths: ["terraform/**", ".github/workflows/terraform.yml"]
+  push:
+    branches: [main]
+    paths: ["terraform/**", ".github/workflows/terraform.yml"]
+
+permissions:
+  id-token: write # required to mint the GitHub OIDC token for WIF
+  contents: read
+
+env:
+  TF_VAR_project_id: mbta-on-time-lakehouse
+  WIF_PROVIDER: projects/403428212023/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+  CI_SERVICE_ACCOUNT: mbta-ci@mbta-on-time-lakehouse.iam.gserviceaccount.com
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        name: Authenticate to GCP (Workload Identity Federation)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.CI_SERVICE_ACCOUNT }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.9"
+
+      - run: terraform init -input=false
+      - run: terraform fmt -check -recursive
+      - run: terraform validate
+      - name: Plan
+        run: terraform plan -input=false -no-color
+
+      - name: Apply (main only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: terraform apply -input=false -auto-approve -no-color

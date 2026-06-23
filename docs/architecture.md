@@ -111,6 +111,15 @@ keeps compute bounded on tiny serverless. **Tradeoff:** bronze holds a rolling w
 history; true append-incremental (Auto Loader) is the streaming Phase-2 item. **The self-managing
 monitor caught this failure automatically** — exactly its job.
 
+### 13. Keyless CI/CD: terraform plan→apply gated by Workload Identity Federation
+**Decision:** GitHub Actions runs `terraform plan` on infra PRs and `terraform apply` on merge to
+main, authenticating to GCP via **Workload Identity Federation** (OIDC) — **no stored JSON key**.
+A repo-scoped WIF provider (`attribute.repository == this repo`) lets the workflow impersonate a
+least-privilege `mbta-ci` service account. **Why:** keyless > long-lived keys (nothing to leak or
+rotate); infra changes ship only through reviewed, merged PRs (GitOps). **Tradeoff:** the WIF pool
++ CI SA are bootstrapped out-of-band (gcloud), not self-managed by terraform (chicken-and-egg).
+See `docs/ci-cd.md`.
+
 ## Known limitations (honest)
 - OTP numbers sharpen as the poller accumulates more history (now self-refreshing).
 - Free Edition: no direct GCS read (decisions #2/#10), one metastore, restricted networking.
