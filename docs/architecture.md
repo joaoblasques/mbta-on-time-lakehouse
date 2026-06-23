@@ -127,8 +127,9 @@ cases (epoch-UTC→local reconciliation, the >24:00:00 after-midnight wrap, dedu
 band). CI installs Java + pyspark so these run on every push. **Why:** Spark timestamp/timezone
 semantics "look right" but bite; the only trustworthy check is to run the transform. The
 logic-vs-harness seam (pure transforms, notebook = I/O) makes the pipeline maintainable + testable.
-**Caveat:** notebooks still inline the equivalent logic; importing the module via a bundle-built
-wheel (kills drift) is the tracked follow-up. See `docs/testing.md`.
+**No drift:** the notebooks import this module — the Asset Bundle builds `src/transforms` into a
+dep-free wheel and attaches it to the job's serverless environment, so the tested code is the code
+that runs (validated dev → prod). See `docs/testing.md` + `docs/asset-bundles.md`.
 
 ## Known limitations (honest)
 - OTP numbers sharpen as the poller accumulates more history (now self-refreshing).

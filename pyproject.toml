@@ -4,21 +4,27 @@ version = "0.0.1"
 description = "Lakehouse measuring MBTA on-time performance from live GTFS-Realtime + static schedules (GCP + Databricks)."
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = [
-    # Ingestion
+# Empty on purpose: the only built artifact is the `transforms` wheel, which must stay dep-free
+# (pyspark is provided by the Databricks runtime). Runtime deps live in the `runtime` group below;
+# Cloud Run images install them explicitly via the Dockerfile.
+dependencies = []
+
+[dependency-groups]
+runtime = [
     "requests>=2.32",
     "gtfs-realtime-bindings>=1.0",   # parse GTFS-RT protobuf feeds
     "google-cloud-pubsub>=2.21",     # publish GTFS-RT pings from the poller
     "google-cloud-storage>=2.16",    # land raw RT objects in GCS (bronze)
     "openai>=1.40",                  # OTP Dreamer LLM brain via OpenRouter (OpenAI-compatible)
 ]
-
-[dependency-groups]
 dev = [
     "pytest>=8.0",
     "ruff>=0.6",
     "pyspark>=3.5",                  # local Spark for unit/integration tests
 ]
+
+[tool.uv]
+default-groups = ["dev", "runtime"]   # `uv run`/`uv sync` install both by default
 
 [tool.ruff]
 line-length = 100
@@ -30,6 +36,15 @@ target-version = "py312"
 # the %pip cell (E402). Everything else is still linted.
 "databricks/notebooks/*.py" = ["F821", "E702", "E402"]
 
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+# Ship ONLY the pure transforms as a top-level `transforms` package — the notebooks import this
+# wheel (single source of truth). Dep-free; pyspark comes from the Databricks runtime.
+packages = ["src/transforms"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["."]   # make the repo-root `src` package importable in tests
+pythonpath = [".", "src"]   # "." → `src.transforms` ; "src" → `transforms` (the wheel's name)

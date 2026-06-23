@@ -30,11 +30,12 @@ subtly wrong:
 The transforms are extracted into **`src/transforms/`** (`lateness.py`, `otp.py`) as pure
 `DataFrame → DataFrame` functions, so the tests exercise the **real** logic, not a paraphrase.
 
-**Honest caveat / known drift:** the Databricks notebooks (`04_silver_lateness`, `05_gold_otp`)
-currently **inline** equivalent logic rather than importing `src.transforms`. Making the notebooks
-import the tested module (via a **bundle-built wheel** added to the job's serverless environment)
-is the follow-up that eliminates this drift — tracked in the roadmap backlog. Until then, keep the
-two in sync; `src/transforms/` is the authoritative, tested version.
+**No drift (resolved 2026-06-23):** the notebooks `04_silver_lateness` and `05_gold_otp` **import
+the tested module** — the Asset Bundle builds `src/transforms` into a dep-free wheel
+(`artifacts` in `databricks.yml`) and attaches it to the job's **serverless environment**
+(`environment_key`), so the silver/gold tasks run `from transforms.lateness import …` /
+`from transforms.otp import …`. The code that's tested is the code that runs. Validated in the
+bundle's `dev` target, then promoted to `prod`. See `docs/asset-bundles.md`.
 
 ## CI
 `ci.yml` installs deps (`uv sync --all-groups`, which includes `pyspark`) + **Java 17**

@@ -15,6 +15,14 @@ bundle:
 include:
   - resources/*.yml
 
+# Build the tested `transforms` wheel so the silver/gold notebooks import it (single source of
+# truth). The wheel is attached to the job's serverless environment (see resources/medallion.job.yml).
+artifacts:
+  transforms_wheel:
+    type: whl
+    build: uv build --wheel
+    path: .
+
 targets:
   dev:
     mode: development # prefixes resources with [dev <user>], pauses schedules — safe sandbox

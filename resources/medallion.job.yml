@@ -1,6 +1,6 @@
 # The medallion-refresh job as code: bronze_rt → silver_lateness → gold_otp, hourly.
-# The bundle uploads the three notebooks (from databricks/notebooks/) to the workspace and
-# wires this multi-task DAG to them. No cluster block → serverless (Free Edition default).
+# The bundle uploads the three notebooks AND builds + attaches the `transforms` wheel (see
+# `artifacts` in databricks.yml) so silver/gold import the tested module. No cluster → serverless.
 
 resources:
   jobs:
@@ -12,18 +12,28 @@ resources:
         timezone_id: Etc/UTC
         pause_status: UNPAUSED
 
+      # Serverless environment carrying the tested transforms wheel (built by the bundle).
+      environments:
+        - environment_key: transforms
+          spec:
+            client: "3"
+            dependencies:
+              - ../dist/*.whl # relative to this file (resources/) → repo-root/dist/
+
       tasks:
-        - task_key: bronze_rt
+        - task_key: bronze_rt # decodes protobuf via %pip gtfs-realtime-bindings (no wheel needed)
           notebook_task:
             notebook_path: ../databricks/notebooks/03_bronze_rt.py
 
         - task_key: silver_lateness
+          environment_key: transforms # → imports transforms.lateness
           depends_on:
             - task_key: bronze_rt
           notebook_task:
             notebook_path: ../databricks/notebooks/04_silver_lateness.py
 
         - task_key: gold_otp
+          environment_key: transforms # → imports transforms.otp
           depends_on:
             - task_key: silver_lateness
           notebook_task:
