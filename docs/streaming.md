@@ -1,5 +1,20 @@
 # Streaming / incremental ingestion (Phase 2)
 
+## ✅ Proof of concept — VALIDATED (2026-06-23)
+A streaming bronze (`databricks/notebooks/03_bronze_rt_stream.py`) using **Auto Loader**
+(`cloudFiles`, binaryFile) + **`Trigger.AvailableNow`** runs cleanly on Free-Edition serverless and
+is **proven incremental**: run 1 ingested 1,610 `.pb` files; run 2 ingested only **+7** (the new
+files the live poller landed in between) — the checkpoint skips everything already processed.
+
+**The gotcha + fix:** the protobuf parse explodes each file into thousands of rows in a Python UDF,
+which **OOMs the tiny serverless worker** if a micro-batch is too big (same root cause as the batch
+bronze). Fixed with **`cloudFiles.maxFilesPerTrigger=128`** (bounded micro-batches) **+
+`.repartition(128)`** (≈1 file per task). Checkpoint + schema location on a **UC Volume** work fine.
+Writes append to `mbta.bronze.rt_trip_updates_stream` (a `_stream` table — prod is untouched).
+
+**Remaining = the cutover** (see Plan): swap prod `03` to this, point `04` at a windowed read,
+retire the batch-window bronze. Done dev→prod with the monitor watching.
+
 ## Spike findings (2026-06-23, Free Edition)
 - **No always-on cluster.** Free Edition runs serverless jobs only — there is no cheap 24/7
   cluster, so a *continuous* stream isn't the right fit. The idiomatic answer is **Structured
