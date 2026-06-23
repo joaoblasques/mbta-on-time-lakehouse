@@ -74,5 +74,10 @@ code that runs** (no drift between "the tests" and "the pipeline").
 Databricks **Free Edition** + GCP free credits, **serverless** throughout, schedules pausable on
 demand. The whole system runs for roughly the price of nothing.
 
-> Want the streaming chapter? See the [Roadmap](roadmap.md) — incremental ingestion via Structured
-> Streaming + Auto Loader is the next build.
+## Incremental ingestion (Structured Streaming) — live
+
+Bronze ingestion runs as **Structured Streaming + Auto Loader** (`cloudFiles`,
+`Trigger.AvailableNow`): each run processes only *new* `.pb` files via a checkpoint and appends, so
+the raw layer keeps **full history** while per-run work stays bounded; silver windows it to recent
+days. Real streaming, within free-tier limits (no always-on cluster). At cutover: 32.6M raw rows
+across 1,657 files, system OTP 59.6%.

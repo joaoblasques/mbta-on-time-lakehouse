@@ -11,12 +11,11 @@ What's built, and what's next. (Source of truth: the repo's `Roadmap.md`.)
 - **Reproducible infra** — **Terraform** (GCP) + **Databricks Asset Bundles** (the job + a tested transforms **wheel** the notebooks import).
 - **CI/CD** — lint + tests on every PR; `terraform plan → apply` gated by **keyless Workload Identity Federation** (no stored keys).
 - **Scaling fix** — incremental copier + bounded, distributed RT decoding.
+- **Streaming / incremental ingestion** — bronze is now **Structured Streaming + Auto Loader**
+  (`Trigger.AvailableNow`): processes only *new* files via a checkpoint, keeps full history, stays
+  within free-tier limits. Silver windows it. Cut over live with the monitor watching.
 
 ## Next ⏳
-
-- **Streaming / incremental ingestion** — Structured Streaming + **Auto Loader** with
-  `Trigger.AvailableNow`: process only *new* files via a checkpoint, keep full history, stay within
-  free-tier limits (no always-on cluster). Built dev-first, then cut over.
 - **Lakeflow Declarative Pipelines (DLT)** — express the medallion declaratively *(stretch — runtime
   availability on Free Edition to be confirmed)*.
 - **Cost recording** — capture per-run cost + a budget alert.
