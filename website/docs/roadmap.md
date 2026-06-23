@@ -14,12 +14,14 @@ What's built, and what's next. (Source of truth: the repo's `Roadmap.md`.)
 - **Streaming / incremental ingestion** — bronze is now **Structured Streaming + Auto Loader**
   (`Trigger.AvailableNow`): processes only *new* files via a checkpoint, keeps full history, stays
   within free-tier limits. Silver windows it. Cut over live with the monitor watching.
+- **Cost & FinOps** — a €20 budget alert (50/90/100%) + **per-job DBU measurement** via
+  `system.billing.usage`. Near-€0 by design (serverless + incremental).
+- **Lakeflow DLT** — spiked a declarative `@dlt.table` + `@dlt.expect` pipeline; it **runs on Free
+  Edition** and matched the imperative gold exactly. Kept as a demonstration of both paradigms.
 
 ## Next ⏳
-- **Lakeflow Declarative Pipelines (DLT)** — express the medallion declaratively *(stretch — runtime
-  availability on Free Edition to be confirmed)*.
-- **Cost recording** — capture per-run cost + a budget alert.
 - **Certifications** *(optional)* — Databricks DE Associate / GCP Professional Data Engineer.
+- Full DLT migration is a possible future direction (production uses Jobs + Asset Bundles today).
 
 ## Design principles
 
