@@ -131,6 +131,17 @@ logic-vs-harness seam (pure transforms, notebook = I/O) makes the pipeline maint
 dep-free wheel and attaches it to the job's serverless environment, so the tested code is the code
 that runs (validated dev → prod). See `docs/testing.md` + `docs/asset-bundles.md`.
 
+### 15. Incremental ingestion: Structured Streaming + Auto Loader (supersedes #12)
+**Decision:** bronze ingestion is **Structured Streaming with Auto Loader** (`cloudFiles`,
+`Trigger.AvailableNow`) — each run processes only *new* `.pb` files (tracked by a checkpoint) and
+**appends**, so bronze keeps full history while per-run work stays bounded. Silver then **windows**
+bronze by recent `feed_ts`. **Why:** the previous bounded-window batch bronze (#12) re-read a
+recent slice every run and discarded older history; Auto Loader is true incremental and retains
+everything, within Free-Edition limits (no always-on cluster). **The catch + fix:** the protobuf
+parse explodes each file into many rows, OOM-ing tiny serverless workers on a large first
+micro-batch — bounded via `cloudFiles.maxFilesPerTrigger=128` + `.repartition(128)` (~1 file/task).
+Cut over with the loop paused + the monitor watching. See `docs/streaming.md`.
+
 ## Known limitations (honest)
 - OTP numbers sharpen as the poller accumulates more history (now self-refreshing).
 - Free Edition: no direct GCS read (decisions #2/#10), one metastore, restricted networking.

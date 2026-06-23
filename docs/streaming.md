@@ -1,5 +1,14 @@
 # Streaming / incremental ingestion (Phase 2)
 
+## ✅ SHIPPED — the live pipeline is now incremental (2026-06-23)
+The cutover is done. Production `03_bronze_rt` is **Structured Streaming + Auto Loader**
+(`cloudFiles` binaryFile, `Trigger.AvailableNow`) for **both** feeds, **appending** to the real
+`mbta.bronze.rt_*` tables — full history retained, only new files processed each run (exactly-once
+via checkpoint, `maxFilesPerTrigger=128` + `repartition(128)`). `04_silver_lateness` now **windows**
+bronze by recent `feed_ts` (3 days) so compute stays bounded as bronze grows. The batch-window
+bronze (decision #12) is retired. Verified at cutover: bronze 32.6M rows / 1,657 files, silver
+518k, gold 174 routes, system OTP 59.6%. The self-managing monitor watched the change.
+
 ## ✅ Proof of concept — VALIDATED (2026-06-23)
 A streaming bronze (`databricks/notebooks/03_bronze_rt_stream.py`) using **Auto Loader**
 (`cloudFiles`, binaryFile) + **`Trigger.AvailableNow`** runs cleanly on Free-Edition serverless and

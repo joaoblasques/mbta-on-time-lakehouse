@@ -93,10 +93,13 @@ copy** — so the code we test is literally the code that runs.
 
 ---
 
-## What we're doing NEXT: streaming (in simple terms)
+## What we did: streaming — now LIVE ✅ (in simple terms)
 
-**The problem today.** Every hour, the system re-reads a **chunk of recent files** to stay fast.
-It works, but it's a bit wasteful and it only keeps a rolling window of history.
+*(This was "next" — it's now shipped. Verified at cutover: 32.6M raw rows across 1,657 files,
+system OTP 59.6%.)*
+
+**The problem before.** Every hour, the system re-read a **chunk of recent files** to stay fast.
+It worked, but it was a bit wasteful and only kept a rolling window of history.
 
 **The concept of streaming.** Instead of "re-read a chunk every time," we want **"only handle what's
 *new* since last time."** Like a mail sorter who only opens *today's* mail, not the whole mailbox
