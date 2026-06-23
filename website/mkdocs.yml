@@ -1,6 +1,6 @@
 site_name: MBTA On-Time Lakehouse
 site_description: A self-managing transit-data lakehouse on Databricks + GCP — is the MBTA late, and where?
-site_url: https://joaoblasques.github.io/mbta-on-time-lakehouse/
+site_url: https://joaoblasques.com/mbta-on-time-lakehouse/
 repo_url: https://github.com/joaoblasques/mbta-on-time-lakehouse
 repo_name: joaoblasques/mbta-on-time-lakehouse
 
