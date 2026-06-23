@@ -150,6 +150,15 @@ budget tripwire + per-job cost attribution is how you control spend on a paid wo
 Edition the DBU rate is €0 (metered, not charged); the steady-state cost lever is incremental +
 serverless compute (decisions #15, #10). See `docs/cost.md`.
 
+### 17. Lakeflow DLT — proven viable, kept as a demonstration
+**Decision:** spiked a **serverless Lakeflow Declarative Pipeline** (`@dlt.table` + `@dlt.expect`)
+and confirmed it **runs on Free Edition** (~50s, no always-on cluster); its declared
+`otp_by_route_dlt` matched the imperative `gold.otp_by_route` exactly (173 routes). **Kept as a
+demonstration** (notebook + a `development` pipeline, on-demand → €0 idle); **production stays on
+Jobs + Asset Bundles** (already incremental/tested, finer control). **Why not migrate now:** the
+prod path works and full DLT migration adds no near-term value — but DLT fluency + the both-paradigms
+choice is the point. See `docs/lakeflow-dlt.md`.
+
 ## Known limitations (honest)
 - OTP numbers sharpen as the poller accumulates more history (now self-refreshing).
 - Free Edition: no direct GCS read (decisions #2/#10), one metastore, restricted networking.
