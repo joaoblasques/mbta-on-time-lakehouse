@@ -1,0 +1,50 @@
+site_name: MBTA On-Time Lakehouse
+site_description: A self-managing transit-data lakehouse on Databricks + GCP — is the MBTA late, and where?
+site_url: https://docs.mbta-on-time-lakehouse.com
+repo_url: https://github.com/joaoblasques/mbta-on-time-lakehouse
+repo_name: joaoblasques/mbta-on-time-lakehouse
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - search.suggest
+
+nav:
+  - Introduction: index.md
+  - How it works: how-it-works.md
+  - Under the hood: under-the-hood.md
+  - Showcase: showcase.md
+  - Roadmap: roadmap.md
+  - Getting started: getting-started.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - tables
+  - toc:
+      permalink: true
+
+plugins:
+  - search

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+         <loc>https://docs.mbta-on-time-lakehouse.com/</loc>
+         <lastmod>2026-06-23</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.mbta-on-time-lakehouse.com/getting-started/</loc>
+         <lastmod>2026-06-23</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.mbta-on-time-lakehouse.com/how-it-works/</loc>
+         <lastmod>2026-06-23</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.mbta-on-time-lakehouse.com/roadmap/</loc>
+         <lastmod>2026-06-23</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.mbta-on-time-lakehouse.com/showcase/</loc>
+         <lastmod>2026-06-23</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.mbta-on-time-lakehouse.com/under-the-hood/</loc>
+         <lastmod>2026-06-23</lastmod>
+    </url>
+</urlset>
