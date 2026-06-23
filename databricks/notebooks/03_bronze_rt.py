@@ -1,16 +1,16 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # 03 — Bronze RT: decode GTFS-Realtime protobuf → Delta
-# MAGIC Reads raw `.pb` snapshots from the `mbta.bronze.rt_raw` Volume, decodes each
-# MAGIC `FeedMessage` (`gtfs_realtime_pb2`), and writes structured bronze tables:
-# MAGIC - `mbta.bronze.rt_trip_updates` — actual/predicted arrival times (drives lateness)
+# MAGIC # 03 — Bronze RT: incremental ingestion via Auto Loader (Structured Streaming)
+# MAGIC Reads raw `.pb` snapshots from the `mbta.bronze.rt_raw` Volume with **Auto Loader**
+# MAGIC (`cloudFiles`, binaryFile) + a **checkpoint**, so each run ingests ONLY new files, decodes
+# MAGIC the protobuf (`gtfs_realtime_pb2`), and **appends** to:
+# MAGIC - `mbta.bronze.rt_trip_updates` — actual/predicted arrivals (drives lateness)
 # MAGIC - `mbta.bronze.rt_vehicle_positions` — where each vehicle was
 # MAGIC
-# MAGIC **Scales:** the protobuf parse runs **distributed** (a UDF on executors — no driver
-# MAGIC `collect()`), over a **bounded rolling window** (`WINDOW_DAYS`, via binaryFile
-# MAGIC `modifiedAfter`). This keeps memory bounded as history grows — OTP is a recent-performance
-# MAGIC metric, so a rolling window is the right semantic. (True append-incremental via Auto
-# MAGIC Loader is the streaming Phase-2 item.) Idempotent overwrite.
+# MAGIC Runs as a scheduled batch via `Trigger.AvailableNow` (no always-on cluster). **Full history**
+# MAGIC is retained (append); silver windows it. The parse explodes each file into many rows, so we
+# MAGIC bound each micro-batch (`maxFilesPerTrigger`) and `repartition` to ~1 file/task to fit the
+# MAGIC tiny serverless workers. Exactly-once via the checkpoint. See `docs/streaming.md`.
 
 # COMMAND ----------
 # MAGIC %pip install gtfs-realtime-bindings
@@ -18,42 +18,16 @@
 dbutils.library.restartPython()
 
 # COMMAND ----------
-from datetime import datetime, timedelta, timezone
-
 from pyspark.sql import functions as F
 from pyspark.sql.types import (ArrayType, DoubleType, IntegerType, LongType,
                                StructField, StructType, StringType)
 
 VOL = "/Volumes/mbta/bronze/rt_raw"
-WINDOW_DAYS = 2          # rolling window of recent service days (bounds compute on tiny serverless)
-NPART = 128              # spread files across many tasks → low per-worker memory in the parse UDF
-
-
-def read_pb(feed: str):
-    """DataFrame[path, content] of the last WINDOW_DAYS `dt=` partitions only.
-
-    Bounds by the data's *date partition* (not file mtime — the recovered backlog was just
-    re-copied, so mtime is unreliable), and repartitions so each Python worker parses few files.
-    """
-    base = f"{VOL}/{feed}"
-    wanted = {(datetime.now(timezone.utc) - timedelta(days=i)).strftime("dt=%Y-%m-%d")
-              for i in range(WINDOW_DAYS)}
-    try:
-        paths = [f.path for f in dbutils.fs.ls(base)
-                 if f.path.rstrip("/").split("/")[-1] in wanted]
-    except Exception:
-        paths = []
-    if not paths:
-        return spark.createDataFrame([], "path string, content binary")
-    return (spark.read.format("binaryFile")
-            .option("recursiveFileLookup", "true").option("pathGlobFilter", "*.pb")
-            .load(paths)  # list of partition dirs (NOT *paths — 2nd positional = format)
-            .repartition(NPART)
-            .select("path", "content"))
-
+CKPT = "/Volumes/mbta/bronze/rt_raw/_ckpt"   # Auto Loader checkpoints + schema (per feed)
+MAX_FILES = 128                               # bounded micro-batch under Trigger.AvailableNow
+NPART = 128                                   # ~1 file/task → protobuf explode fits serverless
 
 # COMMAND ----------
-# --- trip_updates: the lateness driver (arrival/departure per stop) ---
 TU_ROW = StructType([
     StructField("feed_ts", LongType()),     StructField("trip_id", StringType()),
     StructField("route_id", StringType()),  StructField("vehicle_id", StringType()),
@@ -65,7 +39,6 @@ TU_ROW = StructType([
 
 @F.udf(ArrayType(TU_ROW))
 def parse_trip_updates(path, content):
-    """bytes → list of trip_update rows. Runs on executors (distributed), so no driver OOM."""
     from google.transit import gtfs_realtime_pb2
     fm = gtfs_realtime_pb2.FeedMessage()
     fm.ParseFromString(bytes(content))
@@ -88,16 +61,6 @@ def parse_trip_updates(path, content):
     return out
 
 
-tu = (read_pb("trip_updates")
-      .select(F.explode(parse_trip_updates("path", "content")).alias("r"))
-      .select("r.*")
-      .withColumn("_ingested_at", F.current_timestamp())
-      .withColumn("arrival_ts", F.col("arrival_time").cast("timestamp")))  # epoch s -> ts (UTC)
-tu.write.mode("overwrite").option("overwriteSchema", True).saveAsTable("mbta.bronze.rt_trip_updates")
-print("rt_trip_updates rows:", spark.table("mbta.bronze.rt_trip_updates").count())
-
-# COMMAND ----------
-# --- vehicle_positions: where each vehicle was ---
 STATUS = {0: "INCOMING_AT", 1: "STOPPED_AT", 2: "IN_TRANSIT_TO"}
 VP_ROW = StructType([
     StructField("trip_id", StringType()),  StructField("route_id", StringType()),
@@ -131,13 +94,30 @@ def parse_vehicle_positions(path, content):
     return out
 
 
-vp = (read_pb("vehicle_positions")
-      .select(F.explode(parse_vehicle_positions("path", "content")).alias("r"))
-      .select("r.*")
-      .withColumn("_ingested_at", F.current_timestamp())
-      .withColumn("vehicle_ts_utc", F.col("vehicle_ts").cast("timestamp")))
-vp.write.mode("overwrite").option("overwriteSchema", True).saveAsTable("mbta.bronze.rt_vehicle_positions")
-print("rt_vehicle_positions rows:", spark.table("mbta.bronze.rt_vehicle_positions").count())
+# COMMAND ----------
+def ingest(feed, parse_udf, table, post):
+    """Auto Loader incremental ingest of one feed → append to `table` (exactly-once via checkpoint)."""
+    src = (spark.readStream.format("cloudFiles")
+           .option("cloudFiles.format", "binaryFile")
+           .option("cloudFiles.schemaLocation", f"{CKPT}/{feed}/_schema")
+           .option("cloudFiles.maxFilesPerTrigger", str(MAX_FILES))
+           .option("pathGlobFilter", "*.pb")
+           .option("recursiveFileLookup", "true")
+           .load(f"{VOL}/{feed}"))
+    parsed = post(src.repartition(NPART)
+                  .select(F.explode(parse_udf("path", "content")).alias("r"))
+                  .select("r.*")
+                  .withColumn("_ingested_at", F.current_timestamp()))
+    (parsed.writeStream
+     .option("checkpointLocation", f"{CKPT}/{feed}/_chk")
+     .trigger(availableNow=True)
+     .toTable(table)).awaitTermination()
+
+
+ingest("trip_updates", parse_trip_updates, "mbta.bronze.rt_trip_updates",
+       lambda df: df.withColumn("arrival_ts", F.col("arrival_time").cast("timestamp")))
+ingest("vehicle_positions", parse_vehicle_positions, "mbta.bronze.rt_vehicle_positions",
+       lambda df: df.withColumn("vehicle_ts_utc", F.col("vehicle_ts").cast("timestamp")))
 
 # COMMAND ----------
 # MAGIC %md ## DQ gates + peek
@@ -151,5 +131,4 @@ p = spark.table("mbta.bronze.rt_vehicle_positions")
 dq("trip_updates non-empty", t.count() > 0)
 dq("vehicle_positions non-empty", p.count() > 0)
 dq("trip_updates has real arrivals", t.filter(F.col("arrival_time").isNotNull()).count() > 0)
-display(t.orderBy("trip_id", "stop_sequence").limit(10))
-display(p.limit(10))
+print("rt_trip_updates rows:", t.count(), "| rt_vehicle_positions rows:", p.count())

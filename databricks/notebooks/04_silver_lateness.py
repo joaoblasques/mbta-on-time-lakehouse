@@ -10,13 +10,18 @@
 # MAGIC notebook is just I/O + enrichment around it. See `docs/testing.md`. Idempotent.
 
 # COMMAND ----------
+import datetime as dt
+
 from pyspark.sql import functions as F
 
 from transforms.lateness import compute_lateness  # tested wheel (deployed by the Asset Bundle)
 
+WINDOW_DAYS = 3  # bronze is now full-history (Auto Loader append); window silver to keep it bounded
+
 # COMMAND ----------
-# Inputs: bronze RT actuals + the schedule (seconds-after-local-midnight).
-rt = spark.table("mbta.bronze.rt_trip_updates")
+# Inputs: bronze RT actuals (recent window only) + the schedule (seconds-after-local-midnight).
+since_epoch = int((dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=WINDOW_DAYS)).timestamp())
+rt = spark.table("mbta.bronze.rt_trip_updates").filter(F.col("feed_ts") >= since_epoch)
 sched = (spark.table("mbta.silver.stop_times")
          .filter(F.col("arrival_secs").isNotNull())
          .select("trip_id", "stop_id", F.col("arrival_secs").alias("sched_secs")))
