@@ -142,6 +142,14 @@ parse explodes each file into many rows, OOM-ing tiny serverless workers on a la
 micro-batch — bounded via `cloudFiles.maxFilesPerTrigger=128` + `.repartition(128)` (~1 file/task).
 Cut over with the loop paused + the monitor watching. See `docs/streaming.md`.
 
+### 16. Cost control: budget alert + per-job DBU measurement
+**Decision:** a **€20 project-scoped budget** with 50/90/100% email alerts (the guardrail), plus
+cost **measurement** via Databricks `system.billing.usage` — using `usage_metadata.job_id` to
+attribute DBUs to a specific job. **Why:** prove the project is cheap and demonstrate FinOps —
+budget tripwire + per-job cost attribution is how you control spend on a paid workspace. On Free
+Edition the DBU rate is €0 (metered, not charged); the steady-state cost lever is incremental +
+serverless compute (decisions #15, #10). See `docs/cost.md`.
+
 ## Known limitations (honest)
 - OTP numbers sharpen as the poller accumulates more history (now self-refreshing).
 - Free Edition: no direct GCS read (decisions #2/#10), one metastore, restricted networking.
