@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://docs.mbta-on-time-lakehouse.com/</loc>
+         <loc>https://joaoblasques.github.io/mbta-on-time-lakehouse/</loc>
          <lastmod>2026-06-23</lastmod>
     </url>
     <url>
-         <loc>https://docs.mbta-on-time-lakehouse.com/getting-started/</loc>
+         <loc>https://joaoblasques.github.io/mbta-on-time-lakehouse/getting-started/</loc>
          <lastmod>2026-06-23</lastmod>
     </url>
     <url>
-         <loc>https://docs.mbta-on-time-lakehouse.com/how-it-works/</loc>
+         <loc>https://joaoblasques.github.io/mbta-on-time-lakehouse/how-it-works/</loc>
          <lastmod>2026-06-23</lastmod>
     </url>
     <url>
-         <loc>https://docs.mbta-on-time-lakehouse.com/roadmap/</loc>
+         <loc>https://joaoblasques.github.io/mbta-on-time-lakehouse/roadmap/</loc>
          <lastmod>2026-06-23</lastmod>
     </url>
     <url>
-         <loc>https://docs.mbta-on-time-lakehouse.com/showcase/</loc>
+         <loc>https://joaoblasques.github.io/mbta-on-time-lakehouse/showcase/</loc>
          <lastmod>2026-06-23</lastmod>
     </url>
     <url>
-         <loc>https://docs.mbta-on-time-lakehouse.com/under-the-hood/</loc>
+         <loc>https://joaoblasques.github.io/mbta-on-time-lakehouse/under-the-hood/</loc>
          <lastmod>2026-06-23</lastmod>
     </url>
 </urlset>
