@@ -587,12 +587,12 @@
 <li><strong>Reproducible infra</strong> — <strong>Terraform</strong> (GCP) + <strong>Databricks Asset Bundles</strong> (the job + a tested transforms <strong>wheel</strong> the notebooks import).</li>
 <li><strong>CI/CD</strong> — lint + tests on every PR; <code>terraform plan → apply</code> gated by <strong>keyless Workload Identity Federation</strong> (no stored keys).</li>
 <li><strong>Scaling fix</strong> — incremental copier + bounded, distributed RT decoding.</li>
+<li><strong>Streaming / incremental ingestion</strong> — bronze is now <strong>Structured Streaming + Auto Loader</strong>
+  (<code>Trigger.AvailableNow</code>): processes only <em>new</em> files via a checkpoint, keeps full history, stays
+  within free-tier limits. Silver windows it. Cut over live with the monitor watching.</li>
 </ul>
 <h2 id="next">Next ⏳<a class="headerlink" href="#next" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Streaming / incremental ingestion</strong> — Structured Streaming + <strong>Auto Loader</strong> with
-  <code>Trigger.AvailableNow</code>: process only <em>new</em> files via a checkpoint, keep full history, stay within
-  free-tier limits (no always-on cluster). Built dev-first, then cut over.</li>
 <li><strong>Lakeflow Declarative Pipelines (DLT)</strong> — express the medallion declaratively <em>(stretch — runtime
   availability on Free Edition to be confirmed)</em>.</li>
 <li><strong>Cost recording</strong> — capture per-run cost + a budget alert.</li>
