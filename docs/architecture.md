@@ -120,6 +120,16 @@ rotate); infra changes ship only through reviewed, merged PRs (GitOps). **Tradeo
 + CI SA are bootstrapped out-of-band (gcloud), not self-managed by terraform (chicken-and-egg).
 See `docs/ci-cd.md`.
 
+### 14. Testable transforms + Spark integration tests
+**Decision:** the silver/gold logic is extracted into pure `src/transforms/` functions
+(`DataFrame → DataFrame`) and tested on a real local `SparkSession` — pinning the temporal edge
+cases (epoch-UTC→local reconciliation, the >24:00:00 after-midnight wrap, dedup-to-latest, the OTP
+band). CI installs Java + pyspark so these run on every push. **Why:** Spark timestamp/timezone
+semantics "look right" but bite; the only trustworthy check is to run the transform. The
+logic-vs-harness seam (pure transforms, notebook = I/O) makes the pipeline maintainable + testable.
+**Caveat:** notebooks still inline the equivalent logic; importing the module via a bundle-built
+wheel (kills drift) is the tracked follow-up. See `docs/testing.md`.
+
 ## Known limitations (honest)
 - OTP numbers sharpen as the poller accumulates more history (now self-refreshing).
 - Free Edition: no direct GCS read (decisions #2/#10), one metastore, restricted networking.

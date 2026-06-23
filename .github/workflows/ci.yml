@@ -16,9 +16,14 @@ jobs:
         run: uv python install 3.12.8
       - name: Install deps
         run: uv sync --all-groups
+      - name: Java (for Spark integration tests)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
       - name: Lint (ruff)
         run: uv run ruff check .
-      - name: Tests (pytest)
+      - name: Tests (pytest — unit + Spark integration)
         run: uv run pytest -q
 
   terraform:
@@ -39,13 +44,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validate dashboard + job JSON
+      - name: Validate dashboard JSON
         run: |
           python3 -m json.tool dashboards/otp.lvdash.json > /dev/null
-          python3 -m json.tool databricks/jobs/medallion_refresh.job.json > /dev/null
           echo "JSON valid"
 
-# NOTE — `terraform plan` on PR → `apply` on merge (with a human gate) is the natural next
-# step. It needs GCP auth in CI: GitHub OIDC → GCP Workload Identity Federation (preferred,
-# keyless) or a service-account key in repo secrets. The jobs above run credential-free so CI
-# stays green and useful without exposing cloud access. Wiring WIF is a documented follow-up.
+# NOTE — the medallion job is now a Databricks Asset Bundle (databricks.yml + resources/), and
+# `terraform plan→apply` gating runs in terraform.yml (keyless via GCP Workload Identity
+# Federation). The jobs above stay credential-free so CI is fast and safe.
