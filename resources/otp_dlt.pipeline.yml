@@ -14,6 +14,8 @@ resources:
       schema: gold
       serverless: true
       # Attach the bundle-built tested wheel (same artifact the medallion job uses).
+      # NB: `environment` is SINGULAR here (Pipelines API PipelineEnvironment) — deliberately
+      # different from the medallion job's `environments` (plural list, Jobs API). Don't "fix" it.
       environment:
         dependencies:
           - ../dist/*.whl # relative to this file (resources/) → repo-root/dist/
