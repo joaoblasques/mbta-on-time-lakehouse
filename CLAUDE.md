@@ -7,13 +7,14 @@ An end-to-end lakehouse measuring **MBTA on-time performance (OTP)** from live
 GTFS-Realtime + static schedules. **GCP + Databricks**, reproducible from code.
 Stakeholder: transit ops. Metric: OTP % by route/stop/hour. See `README.md`.
 
-## Working model (single session)
-Driven from ONE Claude Code session — **claudesidian** (in `~/Dev/second-brain`) — which has
-full filesystem access to this repo and does everything: code, IaC, notebooks,
-`gcloud`/`terraform`/`databricks` CLI, git commit/push — plus planning + notes in the vault.
-*(A separate "workshop" session was used earlier; consolidated 2026-06-19. A single writer
-avoids the concurrent-edit collisions the old two-session split was guarding against.)*
-Full model: vault `01_Projects/mbta-on-time-lakehouse/WORKING-MODEL.md`.
+## Working model (one session, root here to build)
+Worked as **one session per project, rooted at its center of gravity** — root in THIS repo
+(`~/Dev/mbta-on-time-lakehouse`) to build (code, IaC, notebooks, `gcloud`/`terraform`/`databricks`
+CLI, git); root in the vault (`~/Dev/second-brain/01_Projects/mbta-on-time-lakehouse/`) for
+planning/notes. Whichever root you're in, target the OTHER explicitly (absolute paths, `git -C`).
+Global discipline: `~/.claude/CLAUDE.md`. Full model: vault `…/WORKING-MODEL.md`.
+*(History: a separate "workshop" session was consolidated 2026-06-19; generalized to
+root-at-center-of-gravity 2026-06-25. Single writer avoids concurrent-edit collisions.)*
 - **Single-writer discipline:** only one agent writes this repo at a time.
 - Never commit secrets (this repo is public). Keep vault planning notes in the vault.
 
