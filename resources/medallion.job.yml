@@ -10,7 +10,10 @@ resources:
       schedule:
         quartz_cron_expression: "0 17 * * * ?" # hourly at :17 past
         timezone_id: Etc/UTC
-        pause_status: UNPAUSED
+        # PAUSED 2026-06-25: enough RT history captured; pausing stops Free-Edition compute use.
+        # Flip back to UNPAUSED to resume the hourly self-refresh. (Kept in code so `bundle deploy`
+        # doesn't silently re-enable the schedule.)
+        pause_status: PAUSED
 
       # Serverless environment carrying the tested transforms wheel (built by the bundle).
       environments:
