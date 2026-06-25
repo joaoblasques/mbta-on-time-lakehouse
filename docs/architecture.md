@@ -166,8 +166,8 @@ as materialized views with `@dlt.expect` DQ. It runs **in parallel** with the Jo
 (decision #17 stands — Jobs is still prod), reading the same `silver.trip_stop_lateness`. **Both
 paradigms import the same `transforms.otp` mart builders** (`by_route`/`by_route_hour`/`by_stop`),
 so the `_dlt` marts equal the Jobs marts **by construction** — pinned by unit tests
-(`tests/test_otp_marts.py`); a headless symmetric-`EXCEPT` check (`verify_dlt_equivalence.py`)
-confirms it live at deploy time. On-demand, serverless → €0 idle. **Why parallel not replace:** the
+(`tests/test_otp_marts.py`); a headless symmetric-`EXCEPT` check on the live tables (added with the
+deferred live deploy) will confirm it end-to-end. On-demand, serverless → €0 idle. **Why parallel not replace:** the
 Jobs path (Auto Loader streaming, the OOM fix, tested wheel, monitor integration) is the project's
 strongest engineering; the value of DLT here is demonstrating both paradigms and proving them
 equivalent, not discarding working prod. **Tradeoff:** two gold-producing paths exist, but the

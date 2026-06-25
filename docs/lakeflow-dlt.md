@@ -1,6 +1,8 @@
-# Lakeflow Declarative Pipelines (DLT) — spike
+# Lakeflow Declarative Pipelines (DLT)
 
-**Result: ✅ DLT runs on Databricks Free Edition (serverless).** Verified 2026-06-23.
+**Result: ✅ DLT runs on Databricks Free Edition (serverless).** First spiked 2026-06-23,
+**productionized 2026-06-25** (see "Productionized" below — that is the current state; the spike
+section is kept as history).
 
 ## What DLT is (and how it differs from our jobs)
 
@@ -20,9 +22,9 @@ Databricks derives the rest:
 
 DLT is the higher-level, managed way to build a medallion. The trade-off: less control, more magic.
 
-## The spike
+## The spike (history — since replaced by the productionized pipeline below)
 
-A minimal declarative slice — `databricks/notebooks/dlt_otp_spike.py`:
+The spike was a minimal declarative slice (`dlt_otp_spike.py`, since removed):
 
 ```python
 import dlt
@@ -35,8 +37,8 @@ def otp_by_route_dlt():
     ...  # read silver → classify on-time → group by route
 ```
 
-Created a **serverless** pipeline (`catalog: mbta`, `schema: gold`, `development: true`) and ran an
-update:
+It created a **serverless** pipeline (`catalog: mbta`, `schema: gold`, `development: true`) via a
+hand-run command (since replaced by the bundle resource — see below) and ran an update:
 
 ```bash
 databricks pipelines create --json '{"name":"mbta-otp-dlt-spike","serverless":true,
@@ -66,7 +68,8 @@ The spike is now a production-grade pipeline (built; live deploy deferred while 
 - **Declarative DQ** via `@dlt.expect` (otp in range, counts reconcile, has observations).
 - **Equivalent by construction:** because both paradigms call the same builders, the `_dlt` marts
   equal the Jobs `gold.otp_by_*` tables — pinned by `tests/test_otp_marts.py`. A headless
-  symmetric-`EXCEPT` check (`verify_dlt_equivalence.py`) confirms it on the live tables at deploy.
+  symmetric-`EXCEPT` check on the live tables (added with the deferred live deploy) will confirm it
+  end-to-end.
 
 **Production still runs on Jobs + Asset Bundles** (decision #17). The DLT pipeline is a parallel,
 fully-maintained second paradigm — kept honest by the shared builders and the equivalence check.
