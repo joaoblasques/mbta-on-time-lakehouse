@@ -1,0 +1,22 @@
+# The productionized DLT (Lakeflow Declarative Pipeline) for the gold OTP marts, as a bundle
+# resource (deployed via `databricks bundle deploy`, never `pipelines create`). Serverless,
+# on-demand (no schedule → €0 idle). The bundle attaches the tested `transforms` wheel via the
+# pipeline environment, so the DLT notebook imports the same code as the Jobs path.
+#
+#   databricks bundle deploy -t dev  -p mbta
+#   databricks bundle run otp_marts_dlt -t dev -p mbta
+
+resources:
+  pipelines:
+    otp_marts_dlt:
+      name: mbta-otp-marts-dlt
+      catalog: mbta
+      schema: gold
+      serverless: true
+      # Attach the bundle-built tested wheel (same artifact the medallion job uses).
+      environment:
+        dependencies:
+          - ../dist/*.whl # relative to this file (resources/) → repo-root/dist/
+      libraries:
+        - notebook:
+            path: ../databricks/notebooks/dlt_otp_marts.py
