@@ -32,3 +32,22 @@ def otp_agg(df: DataFrame, dims: list[str]) -> DataFrame:
                  F.round(100.0 * F.sum("on_time") / F.count("*"), 1).alias("otp_pct"),
                  F.round(F.avg("lateness_min"), 1).alias("avg_late_min"),
                  F.round(F.expr("percentile(lateness_min, 0.5)"), 1).alias("median_late_min")))
+
+
+def by_route(lateness: DataFrame) -> DataFrame:
+    """OTP per route. Takes raw lateness (un-classified); classifies internally."""
+    return otp_agg(classify(lateness),
+                   ["route_id", "route_short_name", "route_long_name"]).orderBy("otp_pct")
+
+
+def by_route_hour(lateness: DataFrame) -> DataFrame:
+    """OTP per route × hour-of-day. Takes raw lateness; classifies internally."""
+    return otp_agg(classify(lateness),
+                   ["route_id", "route_short_name", "hour"]).orderBy("route_id", "hour")
+
+
+def by_stop(lateness: DataFrame, min_obs: int = 20) -> DataFrame:
+    """OTP per stop, requiring `min_obs` observations to be meaningful. Takes raw lateness."""
+    return (otp_agg(classify(lateness), ["stop_id", "stop_name"])
+            .filter(F.col("observations") >= min_obs)
+            .orderBy("otp_pct"))
