@@ -53,10 +53,20 @@ databricks pipelines start-update <pipeline_id>
   the imperative `gold.otp_by_route` — with the same OTP shape. The `@dlt.expect_or_drop`
   expectation gated the rows declaratively.
 
-## Decision
+## Productionized (2026-06-25)
 
-The spike is **kept as a demonstration** (the notebook + a `development` pipeline that runs only
-on-demand → zero idle cost). **Production stays on the Jobs + Asset Bundle path** — it's already
-built, incremental (streaming), tested (the wheel), and gives finer control. A full medallion
-migration to DLT is a possible future direction, not needed now. The value here is proving DLT
-fluency and that it's available on Free Edition.
+The spike is now a production-grade pipeline (built; live deploy deferred while compute is paused):
+
+- **Bundle resource** `resources/otp_dlt.pipeline.yml` (`databricks bundle deploy`), not a
+  hand-created `pipelines create`. Serverless, on-demand → €0 idle.
+- **Notebook** `databricks/notebooks/dlt_otp_marts.py` — three `@dlt.table` materialized views
+  (`otp_by_route_dlt`, `otp_by_route_hour_dlt`, `otp_by_stop_dlt`) that **import the tested wheel**
+  (`transforms.otp.by_route` / `by_route_hour` / `by_stop`) — the same functions `05_gold_otp.py`
+  calls. No inline logic.
+- **Declarative DQ** via `@dlt.expect` (otp in range, counts reconcile, has observations).
+- **Equivalent by construction:** because both paradigms call the same builders, the `_dlt` marts
+  equal the Jobs `gold.otp_by_*` tables — pinned by `tests/test_otp_marts.py`. A headless
+  symmetric-`EXCEPT` check (`verify_dlt_equivalence.py`) confirms it on the live tables at deploy.
+
+**Production still runs on Jobs + Asset Bundles** (decision #17). The DLT pipeline is a parallel,
+fully-maintained second paradigm — kept honest by the shared builders and the equivalence check.

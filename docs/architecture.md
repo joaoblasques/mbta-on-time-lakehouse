@@ -159,6 +159,22 @@ Jobs + Asset Bundles** (already incremental/tested, finer control). **Why not mi
 prod path works and full DLT migration adds no near-term value — but DLT fluency + the both-paradigms
 choice is the point. See `docs/lakeflow-dlt.md`.
 
+### 18. Lakeflow DLT, productionized — a parallel, equivalent-by-construction gold pipeline
+**Decision:** the DLT spike (#17) is productionized into a bundle-deployed serverless Lakeflow
+pipeline (`otp_marts_dlt`, `resources/otp_dlt.pipeline.yml`) that declares the three gold OTP marts
+as materialized views with `@dlt.expect` DQ. It runs **in parallel** with the Jobs medallion
+(decision #17 stands — Jobs is still prod), reading the same `silver.trip_stop_lateness`. **Both
+paradigms import the same `transforms.otp` mart builders** (`by_route`/`by_route_hour`/`by_stop`),
+so the `_dlt` marts equal the Jobs marts **by construction** — pinned by unit tests
+(`tests/test_otp_marts.py`); a headless symmetric-`EXCEPT` check (`verify_dlt_equivalence.py`)
+confirms it live at deploy time. On-demand, serverless → €0 idle. **Why parallel not replace:** the
+Jobs path (Auto Loader streaming, the OOM fix, tested wheel, monitor integration) is the project's
+strongest engineering; the value of DLT here is demonstrating both paradigms and proving them
+equivalent, not discarding working prod. **Tradeoff:** two gold-producing paths exist, but the
+shared builders + equivalence check mean they cannot silently drift. **Status:** the pipeline and
+its bundle resource are built and deployable; the live deploy + equivalence run are deferred
+(workspace compute intentionally paused). See `docs/lakeflow-dlt.md`.
+
 ## Known limitations (honest)
 - OTP numbers sharpen as the poller accumulates more history (now self-refreshing).
 - Free Edition: no direct GCS read (decisions #2/#10), one metastore, restricted networking.
