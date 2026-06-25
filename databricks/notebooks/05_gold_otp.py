@@ -7,8 +7,8 @@
 # MAGIC - `mbta.gold.otp_by_stop` — OTP per stop (**where delays concentrate**)
 # MAGIC
 # MAGIC **"On time" is a product decision** — the band lives in the tested wheel `transforms.otp`
-# MAGIC (`classify` tags early/on-time/late + hour; `otp_agg` rolls up). This notebook is I/O +
-# MAGIC DQ around it. See `docs/testing.md`. Idempotent (overwrite).
+# MAGIC (`by_route`/`by_route_hour`/`by_stop` build the marts; the DLT pipeline calls the same
+# MAGIC functions). This notebook is I/O + DQ around them. See `docs/testing.md`. Idempotent (overwrite).
 
 # COMMAND ----------
 from pyspark.sql import functions as F
