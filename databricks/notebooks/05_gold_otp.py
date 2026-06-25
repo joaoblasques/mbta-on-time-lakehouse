@@ -13,22 +13,23 @@
 # COMMAND ----------
 from pyspark.sql import functions as F
 
-from transforms.otp import classify, otp_agg  # tested wheel (deployed by the Asset Bundle)
+from transforms.otp import by_route, by_route_hour, by_stop, classify  # tested wheel (Asset Bundle)
 
 spark.sql("CREATE SCHEMA IF NOT EXISTS mbta.gold")
 
 # COMMAND ----------
-L = classify(spark.table("mbta.silver.trip_stop_lateness"))  # adds on_time/is_late/is_early/hour
+RAW = spark.table("mbta.silver.trip_stop_lateness")           # raw lateness; builders classify internally
 
-otp_agg(L, ["route_id", "route_short_name", "route_long_name"]).orderBy("otp_pct") \
+by_route(RAW) \
     .write.mode("overwrite").option("overwriteSchema", True).saveAsTable("mbta.gold.otp_by_route")
 
-otp_agg(L, ["route_id", "route_short_name", "hour"]).orderBy("route_id", "hour") \
+by_route_hour(RAW) \
     .write.mode("overwrite").option("overwriteSchema", True).saveAsTable("mbta.gold.otp_by_route_hour")
 
-# worst stops = where lateness concentrates (require min observations to be meaningful)
-otp_agg(L, ["stop_id", "stop_name"]).filter(F.col("observations") >= 20).orderBy("otp_pct") \
+by_stop(RAW) \
     .write.mode("overwrite").option("overwriteSchema", True).saveAsTable("mbta.gold.otp_by_stop")
+
+L = classify(RAW)                                             # classified frame for the run summary below
 
 # COMMAND ----------
 # MAGIC %md ## DQ gates
