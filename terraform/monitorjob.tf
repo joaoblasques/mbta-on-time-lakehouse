@@ -98,6 +98,7 @@ resource "google_cloud_scheduler_job" "monitor" {
   region    = var.region
   schedule  = var.monitor_schedule
   time_zone = "Etc/UTC"
+  paused    = true # cost teardown 2026-06-25: keep dormant; flip to false to resume
 
   http_target {
     http_method = "POST"
