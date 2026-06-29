@@ -16,8 +16,11 @@ What's built, and what's next. (Source of truth: the repo's `Roadmap.md`.)
   within free-tier limits. Silver windows it. Cut over live with the monitor watching.
 - **Cost & FinOps** — a €20 budget alert (50/90/100%) + **per-job DBU measurement** via
   `system.billing.usage`. Near-€0 by design (serverless + incremental).
-- **Lakeflow DLT** — spiked a declarative `@dlt.table` + `@dlt.expect` pipeline; it **runs on Free
-  Edition** and matched the imperative gold exactly. Kept as a demonstration of both paradigms.
+- **Lakeflow DLT (productionized, live-verified)** — a bundle-deployed serverless `@dlt.table` +
+  `@dlt.expect` pipeline whose three gold marts **import the same tested wheel** as the Jobs path, so
+  they're equal by construction. Deployed and **proven equivalent on live data** (2026-06-29): a
+  headless symmetric-`EXCEPT` check found all three mart pairs exactly equal (173 / 3169 / 5704 rows,
+  zero diffs). Runs on Free Edition, on-demand → €0 idle. Both paradigms maintained in parallel.
 
 ## Next ⏳
 - **Certifications** *(optional)* — Databricks DE Associate / GCP Professional Data Engineer.

@@ -166,14 +166,17 @@ as materialized views with `@dlt.expect` DQ. It runs **in parallel** with the Jo
 (decision #17 stands — Jobs is still prod), reading the same `silver.trip_stop_lateness`. **Both
 paradigms import the same `transforms.otp` mart builders** (`by_route`/`by_route_hour`/`by_stop`),
 so the `_dlt` marts equal the Jobs marts **by construction** — pinned by unit tests
-(`tests/test_otp_marts.py`); a headless symmetric-`EXCEPT` check on the live tables (added with the
-deferred live deploy) will confirm it end-to-end. On-demand, serverless → €0 idle. **Why parallel not replace:** the
+(`tests/test_otp_marts.py`) and **verified live** by a headless symmetric-`EXCEPT` check
+(`verify_dlt_equivalence.py`). On-demand, serverless → €0 idle. **Why parallel not replace:** the
 Jobs path (Auto Loader streaming, the OOM fix, tested wheel, monitor integration) is the project's
 strongest engineering; the value of DLT here is demonstrating both paradigms and proving them
 equivalent, not discarding working prod. **Tradeoff:** two gold-producing paths exist, but the
-shared builders + equivalence check mean they cannot silently drift. **Status:** the pipeline and
-its bundle resource are built and deployable; the live deploy + equivalence run are deferred
-(workspace compute intentionally paused). See `docs/lakeflow-dlt.md`.
+shared builders + equivalence check mean they cannot silently drift. **Status (2026-06-29):** DONE —
+deployed (`-t dev`), pipeline ran serverless, equivalence verified live (all three pairs exactly
+equal: `otp_by_route` 173, `otp_by_route_hour` 3169, `otp_by_stop` 5704 rows; zero diffs). **Ops
+note:** retiring a DLT spike requires deleting the *pipeline object*, not just its notebook — an
+orphaned pipeline keeps ownership of its UC tables and blocks a new pipeline from claiming those
+names. See `docs/lakeflow-dlt.md`.
 
 ## Known limitations (honest)
 - OTP numbers sharpen as the poller accumulates more history (now self-refreshing).

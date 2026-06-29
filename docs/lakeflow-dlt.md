@@ -55,9 +55,9 @@ databricks pipelines start-update <pipeline_id>
   the imperative `gold.otp_by_route` — with the same OTP shape. The `@dlt.expect_or_drop`
   expectation gated the rows declaratively.
 
-## Productionized (2026-06-25)
+## Productionized (2026-06-25) — live-verified 2026-06-29
 
-The spike is now a production-grade pipeline (built; live deploy deferred while compute is paused):
+The spike is now a production-grade pipeline, **deployed and proven equivalent on live data**:
 
 - **Bundle resource** `resources/otp_dlt.pipeline.yml` (`databricks bundle deploy`), not a
   hand-created `pipelines create`. Serverless, on-demand → €0 idle.
@@ -66,10 +66,18 @@ The spike is now a production-grade pipeline (built; live deploy deferred while 
   (`transforms.otp.by_route` / `by_route_hour` / `by_stop`) — the same functions `05_gold_otp.py`
   calls. No inline logic.
 - **Declarative DQ** via `@dlt.expect` (otp in range, counts reconcile, has observations).
-- **Equivalent by construction:** because both paradigms call the same builders, the `_dlt` marts
-  equal the Jobs `gold.otp_by_*` tables — pinned by `tests/test_otp_marts.py`. A headless
-  symmetric-`EXCEPT` check on the live tables (added with the deferred live deploy) will confirm it
-  end-to-end.
+- **Equivalent by construction *and* verified live:** because both paradigms call the same builders,
+  the `_dlt` marts equal the Jobs `gold.otp_by_*` tables — pinned by `tests/test_otp_marts.py`. On
+  **2026-06-29** the bundle was deployed (`-t dev`), the pipeline ran serverless on-demand, and
+  `databricks/notebooks/verify_dlt_equivalence.py` confirmed it end-to-end with a headless symmetric-
+  `EXCEPT` + row-count check: **all three pairs exactly equal** (`otp_by_route` 173, `otp_by_route_hour`
+  3169, `otp_by_stop` 5704 rows; zero diffs in both directions).
 
 **Production still runs on Jobs + Asset Bundles** (decision #17). The DLT pipeline is a parallel,
 fully-maintained second paradigm — kept honest by the shared builders and the equivalence check.
+
+> **Ops lesson (2026-06-29):** retiring a DLT spike means deleting the **pipeline object**, not just
+> its notebook. The orphaned spike pipeline (`mbta-otp-dlt-spike`) still *owned* the
+> `mbta.gold.otp_by_*_dlt` table names, so the new pipeline's first run failed with "a table can only
+> be owned by one pipeline." Deleting the orphan pipeline auto-dropped its managed tables; re-running
+> the bundle pipeline then succeeded cleanly.
