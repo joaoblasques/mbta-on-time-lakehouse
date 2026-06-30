@@ -3,6 +3,7 @@
 # This is the "everything reproducible from code" principle, applied to the toolchain itself.
 [tools]
 python = "3.12.8"
+java = "temurin-17.0.19+10"  # PySpark local tests need JDK 17 (CI uses temurin 17); mise sets JAVA_HOME so tests don't depend on a fragile shell export
 uv = "0.9.10"
 terraform = "1.12.1"
 gcloud = "573.0.0"
